@@ -48,7 +48,37 @@ button{pointer-events:auto;background:#ff7043;color:#fff;border:0;padding:11px 1
 </head>
 <body>
 <div id="game">
-  <script>
+<div id="ui"><div class="stats">
+<div class="panel">🪙 <span id="coins">0</span></div>
+<div class="panel">⭐ <span id="score">0</span></div>
+<div class="panel">Ур: <span id="level">1</span></div>
+<div class="panel">🐦 <span id="birdQueue"></span></div>
+</div><button id="restart">↻</button></div>
+<canvas id="canvas"></canvas>
+<div id="hint">Оттяни и отпусти!</div>
+<div id="overlay"><div id="overlayCard"><div id="overlayTitle"></div><div id="overlayText"></div><button id="overlayButton">Далее</button></div></div>
+<div id="menuScreen" class="screen show"><div class="card">
+<div class="menu-logo">🐦🎯</div>
+<div class="menu-title">SLINGSHOT</div>
+<div class="menu-sub">Рогатка · Свинки · Скины</div>
+<div class="menu-coins">🪙 <span id="menuCoins">0</span></div>
+<div class="menu-buttons">
+<button id="playBtn" class="btn-primary">▶ Играть</button>
+<button id="shopBtn" class="btn-secondary">🛒 Магазин</button>
+</div></div></div>
+<div id="shopScreen" class="screen"><div class="card">
+<div class="shop-head"><h2>Магазин</h2><div class="shop-coins">🪙 <span id="shopCoins">0</span></div></div>
+<div class="shop-tabs" id="shopTabs">
+<button class="shop-tab active" data-tab="bg">Фон</button>
+<button class="shop-tab" data-tab="pig">Свиньи</button>
+<button class="shop-tab" data-tab="bird">Птицы</button>
+<button class="shop-tab" data-tab="sling">Рогатка</button>
+</div>
+<div class="shop-list" id="shopList"></div>
+<button id="shopBack" class="btn-ghost">← Назад</button>
+</div></div>
+</div>
+<script>
 (function(){
 "use strict";
 var $=function(i){return document.getElementById(i);};
@@ -87,33 +117,53 @@ function(){B(baseX,baseY-42,16,160);B(baseX-70,baseY-42,bw,bh);B(baseX+70,baseY-
 function(){B(baseX-100,baseY-42,bw,bh);B(baseX+100,baseY-42,bw,bh);B(baseX,baseY-100,260,16);B(baseX-70,baseY-160,bw,90);B(baseX+70,baseY-160,bw,90);B(baseX,baseY-220,180,16);B(baseX-40,baseY-275,bw,70);B(baseX+40,baseY-275,bw,70);B(baseX,baseY-320,120,16);P(baseX,baseY-140);P(baseX,baseY-250);P(baseX,baseY-350);P(baseX-60,baseY-350);P(baseX+60,baseY-350);},
 function(){B(baseX-120,baseY-42,bw,bh);B(baseX-40,baseY-42,bw,bh);B(baseX+40,baseY-42,bw,bh);B(baseX+120,baseY-42,bw,bh);B(baseX,baseY-92,300,16);B(baseX-100,baseY-150,bw,bh);B(baseX,baseY-150,bw,bh);B(baseX+100,baseY-150,bw,bh);B(baseX,baseY-210,280,16);B(baseX-70,baseY-270,bw,90);B(baseX+70,baseY-270,bw,90);B(baseX,baseY-330,180,16);B(baseX,baseY-370,16,70);P(baseX-80,baseY-120);P(baseX+80,baseY-120);P(baseX-100,baseY-240);P(baseX+100,baseY-240);P(baseX,baseY-240);P(baseX-30,baseY-390);P(baseX+30,baseY-390);}];
 L[(n-1)%L.length]();if(n>=4){createBody(baseX-110,baseY-92,14,92,{color:dc,mass:1.4+diff*.1});createBody(baseX+110,baseY-92,14,92,{color:dc,mass:1.4+diff*.1});}if(n>=7){createBody(baseX,baseY-238,100,14,{color:dc,mass:1.7+diff*.12});}}
-<div id="ui"><div class="stats">
-<div class="panel">🪙 <span id="coins">0</span></div>
-<div class="panel">⭐ <span id="score">0</span></div>
-<div class="panel">Ур: <span id="level">1</span></div>
-<div class="panel">🐦 <span id="birdQueue"></span></div>
-</div><button id="restart">↻</button></div>
-<canvas id="canvas"></canvas>
-<div id="hint">Оттяни и отпусти!</div>
-<div id="overlay"><div id="overlayCard"><div id="overlayTitle"></div><div id="overlayText"></div><button id="overlayButton">Далее</button></div></div>
-<div id="menuScreen" class="screen show"><div class="card">
-<div class="menu-logo">🐦🎯</div>
-<div class="menu-title">SLINGSHOT</div>
-<div class="menu-sub">Рогатка · Свинки · Скины</div>
-<div class="menu-coins">🪙 <span id="menuCoins">0</span></div>
-<div class="menu-buttons">
-<button id="playBtn" class="btn-primary">▶ Играть</button>
-<button id="shopBtn" class="btn-secondary">🛒 Магазин</button>
-</div></div></div>
-<div id="shopScreen" class="screen"><div class="card">
-<div class="shop-head"><h2>Магазин</h2><div class="shop-coins">🪙 <span id="shopCoins">0</span></div></div>
-<div class="shop-tabs" id="shopTabs">
-<button class="shop-tab active" data-tab="bg">Фон</button>
-<button class="shop-tab" data-tab="pig">Свиньи</button>
-<button class="shop-tab" data-tab="bird">Птицы</button>
-<button class="shop-tab" data-tab="sling">Рогатка</button>
-</div>
-<div class="shop-list" id="shopList"></div>
-<button id="shopBack" class="btn-ghost">← Назад</button>
-</div></div>
-</div>
+  function createLevel(reset){groundY=H-48;sling.x=Math.max(78,W*0.17);sling.y=groundY-66;bodies=[];dragging=false;launched=false;pointerId=null;projectile=null;attempts=Math.max(2,6-level);maxAttempts=attempts;if(reset)score=0;overlay.style.display="none";buildLevel(level);createProjectile();hintEl.textContent="Оттяни птицу и отпусти!";updateUI();}
+function resize(){var oW=W,oH=H;W=window.innerWidth;H=window.innerHeight;DPR=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);if(oW&&oH){if(!inMenu)createLevel(false);}else{if(!inMenu)createLevel(true);}}
+function wake(b){if(!b||b.isStatic)return;b.sleeping=false;b.sleepTime=0;}
+function cC(a,b){var dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy),m=a.radius+b.radius;if(d>=m||d<0.0001)return null;return{nx:dx/d,ny:dy/d,depth:m-d};}
+function rR(a,b){var dx=b.x-a.x,dy=b.y-a.y,ox=(a.w+b.w)/2-Math.abs(dx),oy=(a.h+b.h)/2-Math.abs(dy);if(ox<=0||oy<=0)return null;return ox<oy?{nx:dx>=0?1:-1,ny:0,depth:ox}:{nx:0,ny:dy>=0?1:-1,depth:oy};}
+function cR(c,r){var l=r.x-r.w/2,rt=r.x+r.w/2,t=r.y-r.h/2,b=r.y+r.h/2,px=Math.max(l,Math.min(rt,c.x)),py=Math.max(t,Math.min(b,c.y)),dx=c.x-px,dy=c.y-py,d=Math.hypot(dx,dy);if(d>=c.radius)return null;if(d<0.0001){var toL=c.x-l,toR=rt-c.x,toT=c.y-t,toB=b-c.y,m=Math.min(toL,toR,toT,toB);if(m===toL)return{nx:1,ny:0,depth:c.radius+toL};if(m===toR)return{nx:-1,ny:0,depth:c.radius+toR};if(m===toT)return{nx:0,ny:1,depth:c.radius+toT};return{nx:0,ny:-1,depth:c.radius+toB};}return{nx:-dx/d,ny:-dy/d,depth:c.radius-d};}
+function getCol(a,b){if(a.radius&&b.radius)return cC(a,b);if(!a.radius&&!b.radius)return rR(a,b);if(a.radius)return cR(a,b);var h=cR(b,a);if(h){h.nx*=-1;h.ny*=-1;}return h;}
+function burst(x,y,color,count,kind){count=count||12;kind=kind||"dot";for(var i=0;i<count;i++){var a=Math.random()*Math.PI*2,s=70+Math.random()*210;particles.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-50,life:.45+Math.random()*.45,maxLife:.9,size:2+Math.random()*4,color:color,kind:kind,rotation:Math.random()*Math.PI,spin:(Math.random()-.5)*9});}}
+function breakBlock(b){if(!b.alive)return;b.alive=false;for(var i=0;i<bodies.length;i++)if(bodies[i].alive&&!bodies[i].isStatic)wake(bodies[i]);burst(b.x,b.y,"#b9793f",15,"wood");burst(b.x,b.y,"#e2ad72",9,"wood");}
+function killTarget(t){if(!t.alive||t.scored)return;burst(t.x,t.y,getSkin("pig").color,16);t.alive=false;t.scored=true;score+=100;addCoins(1);updateUI();}
+function resolve(a,b,h){var nx=h.nx,ny=h.ny,sA=Math.hypot(a.vx,a.vy),sB=Math.hypot(b.vx,b.vy);if(a.sleeping&&sB>20)wake(a);if(b.sleeping&&sA>20)wake(b);var ia=(a.isStatic||a.sleeping)?0:1/a.mass,ib=(b.isStatic||b.sleeping)?0:1/b.mass,sum=ia+ib;if(!sum)return;var corr=Math.max(h.depth-0.25,0)*0.78/sum;if(ia){a.x-=nx*corr*ia;a.y-=ny*corr*ia;}if(ib){b.x+=nx*corr*ib;b.y+=ny*corr*ib;}var rvx=b.vx-a.vx,rvy=b.vy-a.vy,vn=rvx*nx+rvy*ny;if(vn>=0)return;var e=Math.abs(vn)<35?0:Math.min(a.restitution,b.restitution),j=-(1+e)*vn/sum,ix=j*nx,iy=j*ny;if(ia){a.vx-=ix*ia;a.vy-=iy*ia;}if(ib){b.vx+=ix*ib;b.vy+=iy*ib;}var tx0=rvx-vn*nx,ty0=rvy-vn*ny,tl=Math.hypot(tx0,ty0);if(tl>0.001){var tx=tx0/tl,ty=ty0/tl,jt=-(rvx*tx+rvy*ty)/sum,mu=Math.sqrt(a.friction*b.friction),fj=Math.max(-j*mu,Math.min(j*mu,jt));if(ia){a.vx-=fj*tx*ia;a.vy-=fj*ty*ia;}if(ib){b.vx+=fj*tx*ib;b.vy+=fj*ty*ib;}}var imp=Math.abs(vn);var hb=(a.type==="projectile"&&b.type==="block")||(b.type==="projectile"&&a.type==="block");if(hb&&launched&&imp>28){if(a.type==="block")breakBlock(a);if(b.type==="block")breakBlock(b);}if(imp>95){if(a.type==="target")killTarget(a);if(b.type==="target")killTarget(b);}if(imp>25){wake(a);wake(b);}}
+function ground(b){var bt=b.radius?b.y+b.radius:b.y+b.h/2;if(bt<=groundY)return;b.y-=bt-groundY;if(b.vy>0)b.vy=-b.vy*b.restitution;b.vx*=0.94;if(Math.abs(b.vy)<22)b.vy=0;if(Math.abs(b.vx)<3)b.vx=0;}
+function sleepSys(b,dt){if(b.isStatic||(b===projectile&&dragging))return;var s=Math.hypot(b.vx,b.vy);if(s<8&&Math.abs(b.vy)<7){b.sleepTime+=dt;if(b.sleepTime>0.7){b.sleeping=true;b.vx=0;b.vy=0;}}else{b.sleepTime=0;b.sleeping=false;}}
+function physics(dt){for(var i=particles.length-1;i>=0;i--){var p=particles[i];p.life-=dt;p.vy+=GRAVITY*.45*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.kind==="wood"){p.rotation+=p.spin*dt;p.vx*=.995;}if(p.life<=0)particles.splice(i,1);}
+for(var j=0;j<bodies.length;j++){var b=bodies[j];if(!b.alive||b.isStatic||b.sleeping)continue;if(b===projectile&&dragging)continue;b.vy+=GRAVITY*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;}
+for(var k=0;k<SOLVER_ITERATIONS;k++){for(var i2=0;i2<bodies.length;i2++){var a=bodies[i2];if(!a.alive)continue;ground(a);for(var j2=i2+1;j2<bodies.length;j2++){var b2=bodies[j2];if(!b2.alive)continue;if(a===projectile&&dragging||b2===projectile&&dragging)continue;if(a.sleeping&&b2.sleeping)continue;var hit=getCol(a,b2);if(hit)resolve(a,b2,hit);}}}
+for(var m=0;m<bodies.length;m++){var bb=bodies[m];if(!bb.alive)continue;ground(bb);sleepSys(bb,dt);if(bb.y>H+120||bb.x<-150||bb.x>W+150){if(bb.type==="target")killTarget(bb);else bb.alive=false;}}
+bodies=bodies.filter(function(b){return b.alive;});
+if(launched&&projectile&&projectile.alive){var sp=Math.hypot(projectile.vx,projectile.vy);if(sp<16)projectileStopTime+=dt;else projectileStopTime=0;if(projectileStopTime>0.75){projectile.alive=false;projectile=null;launched=false;projectileStopTime=0;if(attempts>0&&bodies.some(function(b){return b.type==="target";})){createProjectile();hintEl.textContent="Следующая птица готова!";}}}
+checkLevel();}
+function checkLevel(){if(overlay.style.display==="flex")return;var rem=bodies.some(function(b){return b.alive&&b.type==="target";});if(!rem){launched=false;dragging=false;var bonus=15;addCoins(bonus);hintEl.textContent="Уровень пройден!";overlayTitle.textContent="🏆 Победа!";overlayText.textContent="Уровень "+level+" пройден. +"+bonus+" монет!";overlayButton.textContent="Следующий уровень";overlay.style.display="flex";overlayButton.onclick=function(){overlay.style.display="none";level++;createLevel(false);};return;}
+if(attempts<=0&&!launched&&!dragging){overlayTitle.textContent="Попытки закончились";overlayText.textContent="Уровень "+level+" не пройден.";overlayButton.textContent="Повторить";overlay.style.display="flex";overlayButton.onclick=function(){overlay.style.display="none";createLevel(false);};}}
+function drawBG(){var s=getSkin("bg");var g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,s.colors[0]);g.addColorStop(1,s.colors[1]);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);ctx.fillStyle=s.ground;ctx.fillRect(0,groundY,W,H-groundY);ctx.fillStyle=s.groundDark;ctx.fillRect(0,groundY,W,6);}
+function drawSling(){var s=getSkin("sling"),x=sling.x,y=sling.y;ctx.save();ctx.lineCap="round";ctx.strokeStyle=s.color2;ctx.lineWidth=17;ctx.beginPath();ctx.moveTo(x,y+55);ctx.bezierCurveTo(x-8,y+20,x-14,y-5,x-23,y-36);ctx.moveTo(x,y+55);ctx.bezierCurveTo(x+8,y+20,x+14,y-5,x+23,y-36);ctx.stroke();ctx.strokeStyle=s.color3;ctx.lineWidth=19;ctx.beginPath();ctx.moveTo(x,y+48);ctx.quadraticCurveTo(x-4,y+25,x,y+5);ctx.stroke();ctx.fillStyle=s.color;ctx.beginPath();ctx.arc(x-23,y-36,7,0,Math.PI*2);ctx.arc(x+23,y-36,7,0,Math.PI*2);ctx.fill();if(projectile&&!launched){ctx.strokeStyle="#3e2a1d";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x-23,y-36);ctx.lineTo(projectile.x,projectile.y);ctx.moveTo(x+23,y-36);ctx.lineTo(projectile.x,projectile.y);ctx.stroke();}ctx.restore();}
+function drawBlock(b){var x=b.x-b.w/2,y=b.y-b.h/2;ctx.fillStyle=b.color;ctx.fillRect(x,y,b.w,b.h);ctx.strokeStyle="#75421f";ctx.lineWidth=2;ctx.strokeRect(x,y,b.w,b.h);}
+function drawTarget(b){var s=getSkin("pig");ctx.save();ctx.translate(b.x,b.y);ctx.fillStyle=s.color;ctx.beginPath();ctx.arc(0,0,b.radius,0,Math.PI*2);ctx.fill();ctx.strokeStyle=s.eye;ctx.lineWidth=2.5;ctx.stroke();ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(-6,-4,4,0,Math.PI*2);ctx.arc(6,-4,4,0,Math.PI*2);ctx.fill();ctx.fillStyle=s.eye;ctx.beginPath();ctx.arc(-5,-3,2,0,Math.PI*2);ctx.arc(7,-3,2,0,Math.PI*2);ctx.fill();ctx.restore();}
+function drawBird(b){var s=getSkin("bird");ctx.save();ctx.translate(b.x,b.y);var g=ctx.createRadialGradient(-6,-8,2,0,0,b.radius+4);g.addColorStop(0,s.belly);g.addColorStop(.6,s.color);g.addColorStop(1,s.color2);ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,b.radius,0,Math.PI*2);ctx.fill();ctx.strokeStyle=s.color2;ctx.lineWidth=2;ctx.stroke();ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(-6,-3,5,0,Math.PI*2);ctx.arc(6,-3,5,0,Math.PI*2);ctx.fill();ctx.fillStyle="#222";ctx.beginPath();ctx.arc(-5,-2,2.4,0,Math.PI*2);ctx.arc(7,-2,2.4,0,Math.PI*2);ctx.fill();ctx.restore();}
+function drawTraj(){if(!dragging||!projectile)return;var dx=sling.x-projectile.x,dy=sling.y-projectile.y,pl=Math.hypot(dx,dy),r=Math.min(pl/MAX_PULL,1),pw=1+r*.65,vx=dx*POWER*pw,vy=dy*POWER*pw;ctx.save();ctx.setLineDash([3,8]);ctx.lineWidth=2.5;ctx.strokeStyle="rgba(255,255,255,.92)";ctx.beginPath();for(var t=.06;t<=1.45;t+=.09){var x=projectile.x+vx*t,y=projectile.y+vy*t+.5*GRAVITY*t*t;if(y>groundY-10||x>W+20)break;ctx.lineTo(x,y);}ctx.stroke();ctx.restore();}
+function drawPart(){for(var i=0;i<particles.length;i++){var p=particles[i];ctx.globalAlpha=Math.max(0,p.life/p.maxLife);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;}
+function draw(){ctx.clearRect(0,0,W,H);drawBG();drawSling();drawTraj();for(var i=0;i<bodies.length;i++){var b=bodies[i];if(!b.alive||b===projectile)continue;if(b.type==="target")drawTarget(b);else drawBlock(b);}if(projectile&&projectile.alive)drawBird(projectile);drawPart();}
+function loop(ts){if(!lastTime)lastTime=ts;var ft=Math.min((ts-lastTime)/1000,.05);lastTime=ts;accumulator+=ft;var st=0;while(accumulator>=FIXED_DT&&st<MAX_STEPS){physics(FIXED_DT);accumulator-=FIXED_DT;st++;}if(st===MAX_STEPS)accumulator=Math.min(accumulator,FIXED_DT);if(!inMenu)draw();requestAnimationFrame(loop);}
+function openGame(){inMenu=false;menuScreen.classList.remove("show");shopScreen.classList.remove("show");resize();createLevel(true);}
+function openMenu(){inMenu=true;menuScreen.classList.add("show");shopScreen.classList.remove("show");syncCoinsUI();}
+function renderShop(tab){shopListEl.innerHTML="";for(var i=0;i<SKINS[tab].length;i++){var s=SKINS[tab][i],owned=save.unlocked[tab].indexOf(s.id)>=0,active=save.active[tab]===s.id,div=document.createElement("div");div.className="shop-item"+(active?" selected":"");var sw=document.createElement("div");sw.className="shop-swatch";if(tab==="bg")sw.style.background="linear-gradient(180deg,"+s.colors[0]+","+s.colors[1]+")";else if(tab==="pig"||tab==="bird")sw.style.background=s.color;else sw.style.background=s.color;var nm=document.createElement("div");nm.className="shop-name";nm.textContent=s.name;var btn=document.createElement("button");btn.className="shop-buy "+(active?"equipped":owned?"owned":"locked");btn.textContent=active?"✓ Выбрано":owned?"Выбрать":s.price+" 🪙";btn.disabled=active;btn.onclick=(function(sc,cat){return function(){if(save.unlocked[cat].indexOf(sc.id)<0){if(save.coins<sc.price){alert("Недостаточно монет!");return;}save.coins-=sc.price;save.unlocked[cat].push(sc.id);}save.active[cat]=sc.id;persistSave();syncCoinsUI();renderShop(tab);if(!inMenu)createLevel(false);};})(s,tab);div.appendChild(sw);div.appendChild(nm);div.appendChild(btn);shopListEl.appendChild(div);}}
+shopTabsEl.onclick=function(e){var b=e.target.closest(".shop-tab");if(!b)return;var tabs=shopTabsEl.querySelectorAll(".shop-tab");for(var i=0;i<tabs.length;i++)tabs[i].classList.remove("active");b.classList.add("active");renderShop(b.getAttribute("data-tab"));};
+playBtn.onclick=function(){openGame();};
+shopBtn.onclick=function(){menuScreen.classList.remove("show");shopScreen.classList.add("show");renderShop("bg");syncCoinsUI();};
+shopBack.onclick=function(){shopScreen.classList.remove("show");menuScreen.classList.add("show");syncCoinsUI();};
+restartBtn.onclick=function(){level=1;if(inMenu)openGame();else createLevel(true);};
+canvas.addEventListener("pointerdown",function(e){if(!projectile||launched||overlay.style.display==="flex")return;var r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;if(Math.hypot(x-projectile.x,y-projectile.y)<Math.max(58,projectile.radius+30)){dragging=true;pointerId=e.pointerId;canvas.setPointerCapture(e.pointerId);}});
+canvas.addEventListener("pointermove",function(e){if(!dragging||!projectile||e.pointerId!==pointerId)return;var r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,dx=x-sling.x,dy=y-sling.y,md=Math.min(MAX_PULL,W*.35),d=Math.hypot(dx,dy);if(d>md){dx*=md/d;dy*=md/d;}dx=Math.min(dx,10);projectile.x=sling.x+dx;projectile.y=sling.y+dy;projectile.vx=0;projectile.vy=0;});
+canvas.addEventListener("pointerup",function(e){if(e.pointerId!==pointerId||!dragging||!projectile)return;dragging=false;pointerId=null;var dx=sling.x-projectile.x,dy=sling.y-projectile.y,d=Math.hypot(dx,dy),r=Math.min(d/MAX_PULL,1),m=1+r*.65;projectile.vx=dx*POWER*m;projectile.vy=dy*POWER*m;launched=true;projectileStopTime=0;attempts=Math.max(0,attempts-1);updateUI();hintEl.textContent="Попади по всем целям!";});
+canvas.addEventListener("pointercancel",function(e){if(e.pointerId===pointerId){dragging=false;pointerId=null;}});
+window.addEventListener("resize",resize);
+if(window.Telegram&&window.Telegram.WebApp){var tg=window.Telegram.WebApp;tg.ready();tg.expand();if(tg.disableVerticalSwipes)tg.disableVerticalSwipes();}
+loadSave();syncCoinsUI();resize();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
