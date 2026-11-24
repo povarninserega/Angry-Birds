@@ -18,9 +18,9 @@ canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}#canva
 .panel{padding:10px 13px;background:rgba(255,255,255,.94);border-radius:12px;color:#25364a;font-weight:bold;font-size:clamp(13px,3.5vw,17px);box-shadow:0 3px 12px #0002}
 .bird-queue{display:inline-flex;gap:3px;vertical-align:middle;min-height:22px}
 .bird-token{font-size:20px;line-height:1;filter:drop-shadow(0 1px 1px #0003)}
-button{pointer-events:auto;background:#ff7043;color:white;border:0;padding:11px 15px;border-radius:12px;font-size:14px;font-weight:bold;box-shadow:0 3px 8px #0002;cursor:pointer}
+button{pointer-events:auto;background:#ff7043;color:white;border:0;padding:11px 15px;border-radius:12px;font-size:14px;font-weight:bold;box-shadow:0 3px 8px #0002;cursor:pointer;font-family:inherit}
 button:active{transform:scale(.97)}
-#hint{position:absolute;bottom:max(18px,env(safe-area-inset-bottom));left:12px;right:12px;text-align:center;color:white;font-weight:bold;font-size:14px;text-shadow:0 2px 5px #333;pointer-events:none}
+#hint{position:absolute;bottom:max(18px,env(safe-area-inset-bottom));left:12px;right:12px;text-align:center;color:white;font-weight:bold;font-size:14px;text-shadow:0 2px 5px #333;pointer-events:none;z-index:4}
 #overlay{display:none;position:absolute;inset:0;z-index:10;background:rgba(12,30,45,.35);align-items:center;justify-content:center;padding:20px}
 #overlayCard{background:white;border-radius:20px;padding:24px;text-align:center;max-width:340px;width:100%;box-shadow:0 12px 35px #0003}
 #overlayTitle{font-size:25px;color:#25364a;margin-bottom:10px}
@@ -34,7 +34,7 @@ button:active{transform:scale(.97)}
 .menu-logo{font-size:clamp(34px,10vw,54px);line-height:1;margin-bottom:6px}
 .menu-title{font-size:clamp(22px,6vw,30px);color:#25364a;font-weight:900;letter-spacing:.5px;margin-bottom:4px}
 .menu-sub{color:#6c7d90;font-weight:bold;margin-bottom:18px;font-size:14px}
-.menu-coins{display:inline-flex;align-items:center;gap:7px;background:#fff7d6;border:2px solid #ffd54f;color:#a8720b;font-weight:900;border-radius:14px;padding:8px 16px;margin-bottom:20px;font-size:17px}
+.menu-coins{display:inline-flex;align-items:center;gap:7px;background:#fff7d6;border:2px solid #ffd54f;color:#a8720b;font-weight:900;border-radius:14px;padding:8px 16px;margin-bottom:20px;font-size:17px;align-self:center}
 .menu-buttons{display:flex;flex-direction:column;gap:11px}
 .btn-primary{background:linear-gradient(180deg,#ff8a5c,#ff5f34);font-size:19px;padding:16px}
 .btn-secondary{background:linear-gradient(180deg,#57bdf1,#2f9ad6);font-size:17px;padding:14px}
@@ -71,7 +71,6 @@ button:active{transform:scale(.97)}
   <canvas id="canvas"></canvas>
   <div id="hint">Оттяни снаряд назад и отпусти!</div>
 
-  <!-- Оверлей конца уровня -->
   <div id="overlay">
     <div id="overlayCard">
       <div id="overlayTitle">Уровень пройден!</div>
@@ -80,7 +79,6 @@ button:active{transform:scale(.97)}
     </div>
   </div>
 
-  <!-- Главное меню -->
   <div id="menuScreen" class="screen show">
     <div class="menu-card">
       <div class="menu-logo">🐦🎯</div>
@@ -94,7 +92,6 @@ button:active{transform:scale(.97)}
     </div>
   </div>
 
-  <!-- Магазин -->
   <div id="shopScreen" class="screen">
     <div class="shop-card">
       <div class="shop-head">
@@ -116,9 +113,7 @@ button:active{transform:scale(.97)}
 (() => {
 "use strict";
 
-/* ============================================================
-   DOM
-   ============================================================ */
+/* ========== DOM ========== */
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d", {alpha:false});
 const scoreEl = document.getElementById("score");
@@ -136,41 +131,12 @@ const menuCoinsEl = document.getElementById("menuCoins");
 const shopCoinsEl = document.getElementById("shopCoins");
 const shopListEl = document.getElementById("shopList");
 const shopTabsEl = document.getElementById("shopTabs");
+const playBtn = document.getElementById("playBtn");
+const shopBtn = document.getElementById("shopBtn");
+const shopBack = document.getElementById("shopBack");
+const restartBtn = document.getElementById("restart");
 
-/* ============================================================
-   СОХРАНЕНИЕ
-   ============================================================ */
-const SAVE_KEY = "slingshot_save_v2";
-const save = {
-  coins: 0,
-  unlocked: {bg:["bg_default"], pig:["pig_default"], bird:["bird_default"], sling:["sling_default"]},
-  active:   {bg:"bg_default", pig:"pig_default", bird:"bird_default", sling:"sling_default"}
-};
-function loadSave(){
-  try{
-    const raw = localStorage.getItem(SAVE_KEY);
-    if(raw){
-      const d = JSON.parse(raw);
-      if(d && typeof d==="object"){
-        if(typeof d.coins==="number") save.coins=d.coins;
-        if(d.unlocked) for(const k of Object.keys(save.unlocked)) if(Array.isArray(d.unlocked[k])) save.unlocked[k]=d.unlocked[k];
-        if(d.active) for(const k of Object.keys(save.active)) if(typeof d.active[k]==="string") save.active[k]=d.active[k];
-      }
-    }
-  }catch(e){}
-  // Гарантируем, что дефолтные скины разблокированы и выбраны корректно
-  for(const cat of Object.keys(save.unlocked)){
-    if(!save.unlocked[cat].includes(SAVE_DEFAULT[cat])) save.unlocked[cat].push(SAVE_DEFAULT[cat]);
-    if(!save.unlocked[cat].includes(save.active[cat])) save.active[cat]=SAVE_DEFAULT[cat];
-  }
-}
-function persistSave(){
-  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){}
-}
-
-/* ============================================================
-   СКИНЫ
-   ============================================================ */
+/* ========== СКИНЫ ========== */
 const SKINS = {
   bg: [
     {id:"bg_default", name:"День", price:0, preview:{type:"sky", colors:["#62bce9","#d4f2ff"], ground:"#5cad42", groundDark:"#367c2c"}},
@@ -200,6 +166,33 @@ const SKINS = {
 };
 const SAVE_DEFAULT = {bg:"bg_default", pig:"pig_default", bird:"bird_default", sling:"sling_default"};
 
+/* ========== СОХРАНЕНИЕ ========== */
+const SAVE_KEY = "slingshot_save_v2";
+const save = {
+  coins: 0,
+  unlocked: {bg:["bg_default"], pig:["pig_default"], bird:["bird_default"], sling:["sling_default"]},
+  active:   {bg:"bg_default", pig:"pig_default", bird:"bird_default", sling:"sling_default"}
+};
+function loadSave(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(raw){
+      const d = JSON.parse(raw);
+      if(d && typeof d==="object"){
+        if(typeof d.coins==="number") save.coins=d.coins;
+        if(d.unlocked) for(const k of Object.keys(save.unlocked)) if(Array.isArray(d.unlocked[k])) save.unlocked[k]=d.unlocked[k];
+        if(d.active) for(const k of Object.keys(save.active)) if(typeof d.active[k]==="string") save.active[k]=d.active[k];
+      }
+    }
+  }catch(e){}
+  for(const cat of Object.keys(save.unlocked)){
+    if(!save.unlocked[cat].includes(SAVE_DEFAULT[cat])) save.unlocked[cat].push(SAVE_DEFAULT[cat]);
+    if(!save.unlocked[cat].includes(save.active[cat])) save.active[cat]=SAVE_DEFAULT[cat];
+  }
+}
+function persistSave(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }catch(e){}
+}
 function getSkin(cat){
   const id = save.active[cat];
   return SKINS[cat].find(s=>s.id===id) || SKINS[cat][0];
@@ -212,17 +205,15 @@ function syncCoinsUI(){
   shopCoinsEl.textContent = save.coins;
 }
 
-/* ============================================================
-   СОСТОЯНИЕ ИГРЫ
-   ============================================================ */
+/* ========== СОСТОЯНИЕ ========== */
 let W=0,H=0,DPR=1,groundY=0;
 let bodies=[],projectile=null;
 let score=0,level=1,attempts=5,maxAttempts=5;
 let dragging=false,launched=false,pointerId=null,projectileStopTime=0;
 let sling={x:100,y:300};
 let lastTime=0,accumulator=0,animationTime=0;
-let levelCoinsEarnedThisLevel = 0;
-let inMenu = true;
+let levelCoinsEarnedThisLevel=0;
+let inMenu=true;
 const particles=[];
 
 const GRAVITY=1450;
@@ -231,31 +222,24 @@ const MAX_PULL=155;
 const FIXED_DT=1/120;
 const MAX_STEPS=6;
 const SOLVER_ITERATIONS=7;
-const MAX_LEVELS = 10;
 
+/* ========== UI ========== */
 function updateUI(){
   scoreEl.textContent=score;
   levelEl.textContent=level;
-  birdQueueEl.innerHTML=Array.from({length:attempts},()=>'<span class="bird-token" aria-label="Птица">🐦</span>').join("") || "—";
+  birdQueueEl.innerHTML=Array.from({length:attempts},()=>'<span class="bird-token">🐦</span>').join("") || "—";
   syncCoinsUI();
 }
 
+/* ========== ФИЗИКА ========== */
 function createBody(x,y,w,h,opt={}){
-  const b={
-    x,y,px:x,py:y,vx:0,vy:0,w,h,
-    radius:opt.radius||0,
-    type:opt.type||"block",
-    color:opt.color||"#b9793f",
-    mass:opt.mass||1,
-    restitution:opt.restitution??0.05,
-    friction:opt.friction??0.8,
-    alive:true,sleeping:false,sleepTime:0,
-    isStatic:!!opt.isStatic,scored:false
-  };
+  const b={x,y,px:x,py:y,vx:0,vy:0,w,h,radius:opt.radius||0,
+    type:opt.type||"block",color:opt.color||"#b9793f",mass:opt.mass||1,
+    restitution:opt.restitution??0.05,friction:opt.friction??0.8,
+    alive:true,sleeping:false,sleepTime:0,isStatic:!!opt.isStatic,scored:false};
   bodies.push(b);
   return b;
 }
-
 function createProjectile(){
   projectileStopTime=0;
   projectile=createBody(sling.x,sling.y,36,36,{
@@ -264,9 +248,7 @@ function createProjectile(){
   });
 }
 
-/* ============================================================
-   ПОСТРОЕНИЕ УРОВНЕЙ
-   ============================================================ */
+/* ========== УРОВНИ ========== */
 function buildLevel(n){
   const baseX = Math.min(W*0.73, W-110);
   const baseY = groundY;
@@ -275,179 +257,109 @@ function buildLevel(n){
   const bh = 80 + diff*2;
   const blockColor = diff>=6 ? "#9b6338" : (diff>=3 ? "#a06a3c" : "#b9793f");
   const darkColor = "#8f5b35";
-
-  const block = (x,y,w,h,extra={}) => createBody(x,y,w,h,Object.assign({color:blockColor,mass:1.1+diff*0.1},extra));
-  const pig = (x,y) => createBody(x,y,36,36,{type:"target",radius:18,color:getSkin("pig").color,mass:0.7+diff*0.06,restitution:0.12,friction:0.75});
+  const block=(x,y,w,h,extra={})=>createBody(x,y,w,h,Object.assign({color:blockColor,mass:1.1+diff*0.1},extra));
+  const pig=(x,y)=>createBody(x,y,36,36,{type:"target",radius:18,color:getSkin("pig").color,mass:0.7+diff*0.06,restitution:0.12,friction:0.75});
 
   const layouts = [
-    // 0: классическая башня
-    () => {
-      block(baseX-48,baseY-42,bw,bh);
-      block(baseX+48,baseY-42,bw,bh);
+    // 0
+    ()=>{
+      block(baseX-48,baseY-42,bw,bh); block(baseX+48,baseY-42,bw,bh);
       block(baseX,baseY-92,125,16);
-      block(baseX-48,baseY-150,bw,60);
-      block(baseX+48,baseY-150,bw,60);
+      block(baseX-48,baseY-150,bw,60); block(baseX+48,baseY-150,bw,60);
       block(baseX,baseY-190,125,16);
-      pig(baseX,baseY-120);
-      pig(baseX-48,baseY-180);
-      pig(baseX+48,baseY-180);
+      pig(baseX,baseY-120); pig(baseX-48,baseY-180); pig(baseX+48,baseY-180);
     },
-    // 1: пирамида
-    () => {
-      block(baseX-70,baseY-42,bw,bh);
-      block(baseX+70,baseY-42,bw,bh);
+    // 1
+    ()=>{
+      block(baseX-70,baseY-42,bw,bh); block(baseX+70,baseY-42,bw,bh);
       block(baseX,baseY-92,180,16);
-      block(baseX-40,baseY-140,bw,70);
-      block(baseX+40,baseY-140,bw,70);
+      block(baseX-40,baseY-140,bw,70); block(baseX+40,baseY-140,bw,70);
       block(baseX,baseY-185,120,16);
-      pig(baseX,baseY-120);
-      pig(baseX-60,baseY-170);
-      pig(baseX+60,baseY-170);
-      pig(baseX,baseY-215);
+      pig(baseX,baseY-120); pig(baseX-60,baseY-170); pig(baseX+60,baseY-170); pig(baseX,baseY-215);
     },
-    // 2: два этажа
-    () => {
-      block(baseX-55,baseY-42,bw,bh);
-      block(baseX,baseY-42,bw,bh);
-      block(baseX+55,baseY-42,bw,bh);
+    // 2
+    ()=>{
+      block(baseX-55,baseY-42,bw,bh); block(baseX,baseY-42,bw,bh); block(baseX+55,baseY-42,bw,bh);
       block(baseX,baseY-92,200,16);
-      block(baseX-45,baseY-145,bw,80);
-      block(baseX+45,baseY-145,bw,80);
+      block(baseX-45,baseY-145,bw,80); block(baseX+45,baseY-145,bw,80);
       block(baseX,baseY-195,140,16);
-      pig(baseX-55,baseY-120);
-      pig(baseX+55,baseY-120);
-      pig(baseX,baseY-230);
-      pig(baseX,baseY-270);
+      pig(baseX-55,baseY-120); pig(baseX+55,baseY-120); pig(baseX,baseY-230); pig(baseX,baseY-270);
     },
-    // 3: крепость
-    () => {
-      block(baseX-90,baseY-42,bw,bh);
-      block(baseX-30,baseY-42,bw,bh);
-      block(baseX+30,baseY-42,bw,bh);
-      block(baseX+90,baseY-42,bw,bh);
+    // 3
+    ()=>{
+      block(baseX-90,baseY-42,bw,bh); block(baseX-30,baseY-42,bw,bh);
+      block(baseX+30,baseY-42,bw,bh); block(baseX+90,baseY-42,bw,bh);
       block(baseX,baseY-92,240,16);
-      block(baseX-70,baseY-145,bw,80);
-      block(baseX+70,baseY-145,bw,80);
+      block(baseX-70,baseY-145,bw,80); block(baseX+70,baseY-145,bw,80);
       block(baseX,baseY-195,180,16);
-      block(baseX-40,baseY-240,bw,60);
-      block(baseX+40,baseY-240,bw,60);
+      block(baseX-40,baseY-240,bw,60); block(baseX+40,baseY-240,bw,60);
       block(baseX,baseY-280,140,16);
-      pig(baseX-60,baseY-120);
-      pig(baseX+60,baseY-120);
-      pig(baseX,baseY-230);
-      pig(baseX,baseY-310);
+      pig(baseX-60,baseY-120); pig(baseX+60,baseY-120); pig(baseX,baseY-230); pig(baseX,baseY-310);
     },
-    // 4: мост
-    () => {
-      block(baseX-100,baseY-42,bw,bh);
-      block(baseX+100,baseY-42,bw,bh);
+    // 4
+    ()=>{
+      block(baseX-100,baseY-42,bw,bh); block(baseX+100,baseY-42,bw,bh);
       block(baseX,baseY-92,260,16);
-      block(baseX-60,baseY-145,bw,80);
-      block(baseX+60,baseY-145,bw,80);
+      block(baseX-60,baseY-145,bw,80); block(baseX+60,baseY-145,bw,80);
       block(baseX,baseY-195,160,16);
       block(baseX,baseY-240,16,80);
-      pig(baseX-80,baseY-120);
-      pig(baseX+80,baseY-120);
-      pig(baseX,baseY-230);
-      pig(baseX-40,baseY-270);
-      pig(baseX+40,baseY-270);
+      pig(baseX-80,baseY-120); pig(baseX+80,baseY-120); pig(baseX,baseY-230);
+      pig(baseX-40,baseY-270); pig(baseX+40,baseY-270);
     },
-    // 5: две башни
-    () => {
-      block(baseX-110,baseY-42,bw,bh);
-      block(baseX-60,baseY-42,bw,bh);
-      block(baseX+60,baseY-42,bw,bh);
-      block(baseX+110,baseY-42,bw,bh);
-      block(baseX-85,baseY-92,120,16);
-      block(baseX+85,baseY-92,120,16);
-      block(baseX-85,baseY-145,bw,80);
-      block(baseX+85,baseY-145,bw,80);
-      block(baseX-85,baseY-195,90,16);
-      block(baseX+85,baseY-195,90,16);
-      pig(baseX-85,baseY-120);
-      pig(baseX+85,baseY-120);
-      pig(baseX-85,baseY-225);
-      pig(baseX+85,baseY-225);
-      pig(baseX,baseY-120);
+    // 5
+    ()=>{
+      block(baseX-110,baseY-42,bw,bh); block(baseX-60,baseY-42,bw,bh);
+      block(baseX+60,baseY-42,bw,bh); block(baseX+110,baseY-42,bw,bh);
+      block(baseX-85,baseY-92,120,16); block(baseX+85,baseY-92,120,16);
+      block(baseX-85,baseY-145,bw,80); block(baseX+85,baseY-145,bw,80);
+      block(baseX-85,baseY-195,90,16); block(baseX+85,baseY-195,90,16);
+      pig(baseX-85,baseY-120); pig(baseX+85,baseY-120); pig(baseX-85,baseY-225); pig(baseX+85,baseY-225); pig(baseX,baseY-120);
     },
-    // 6: высотка
-    () => {
-      block(baseX-55,baseY-42,bw,bh);
-      block(baseX+55,baseY-42,bw,bh);
+    // 6
+    ()=>{
+      block(baseX-55,baseY-42,bw,bh); block(baseX+55,baseY-42,bw,bh);
       block(baseX,baseY-92,150,16);
-      block(baseX-55,baseY-150,bw,bh);
-      block(baseX+55,baseY-150,bw,bh);
+      block(baseX-55,baseY-150,bw,bh); block(baseX+55,baseY-150,bw,bh);
       block(baseX,baseY-200,150,16);
-      block(baseX-55,baseY-258,bw,bh);
-      block(baseX+55,baseY-258,bw,bh);
+      block(baseX-55,baseY-258,bw,bh); block(baseX+55,baseY-258,bw,bh);
       block(baseX,baseY-308,150,16);
-      pig(baseX,baseY-120);
-      pig(baseX,baseY-228);
-      pig(baseX,baseY-336);
-      pig(baseX-30,baseY-336);
-      pig(baseX+30,baseY-336);
+      pig(baseX,baseY-120); pig(baseX,baseY-228); pig(baseX,baseY-336); pig(baseX-30,baseY-336); pig(baseX+30,baseY-336);
     },
-    // 7: крест
-    () => {
+    // 7
+    ()=>{
       block(baseX,baseY-42,16,160);
-      block(baseX-70,baseY-42,bw,bh);
-      block(baseX+70,baseY-42,bw,bh);
+      block(baseX-70,baseY-42,bw,bh); block(baseX+70,baseY-42,bw,bh);
       block(baseX,baseY-130,200,16);
-      block(baseX-60,baseY-190,bw,90);
-      block(baseX+60,baseY-190,bw,90);
+      block(baseX-60,baseY-190,bw,90); block(baseX+60,baseY-190,bw,90);
       block(baseX,baseY-245,170,16);
-      pig(baseX-50,baseY-170);
-      pig(baseX+50,baseY-170);
-      pig(baseX,baseY-280);
-      pig(baseX-30,baseY-310);
-      pig(baseX+30,baseY-310);
+      pig(baseX-50,baseY-170); pig(baseX+50,baseY-170); pig(baseX,baseY-280); pig(baseX-30,baseY-310); pig(baseX+30,baseY-310);
     },
-    // 8: ворота
-    () => {
-      block(baseX-100,baseY-42,bw,bh);
-      block(baseX+100,baseY-42,bw,bh);
+    // 8
+    ()=>{
+      block(baseX-100,baseY-42,bw,bh); block(baseX+100,baseY-42,bw,bh);
       block(baseX,baseY-100,260,16);
-      block(baseX-70,baseY-160,bw,90);
-      block(baseX+70,baseY-160,bw,90);
+      block(baseX-70,baseY-160,bw,90); block(baseX+70,baseY-160,bw,90);
       block(baseX,baseY-220,180,16);
-      block(baseX-40,baseY-275,bw,70);
-      block(baseX+40,baseY-275,bw,70);
+      block(baseX-40,baseY-275,bw,70); block(baseX+40,baseY-275,bw,70);
       block(baseX,baseY-320,120,16);
-      pig(baseX,baseY-140);
-      pig(baseX,baseY-250);
-      pig(baseX,baseY-350);
-      pig(baseX-60,baseY-350);
-      pig(baseX+60,baseY-350);
+      pig(baseX,baseY-140); pig(baseX,baseY-250); pig(baseX,baseY-350); pig(baseX-60,baseY-350); pig(baseX+60,baseY-350);
     },
-    // 9: мега-крепость
-    () => {
-      block(baseX-120,baseY-42,bw,bh);
-      block(baseX-40,baseY-42,bw,bh);
-      block(baseX+40,baseY-42,bw,bh);
-      block(baseX+120,baseY-42,bw,bh);
+    // 9
+    ()=>{
+      block(baseX-120,baseY-42,bw,bh); block(baseX-40,baseY-42,bw,bh);
+      block(baseX+40,baseY-42,bw,bh); block(baseX+120,baseY-42,bw,bh);
       block(baseX,baseY-92,300,16);
-      block(baseX-100,baseY-150,bw,bh);
-      block(baseX,baseY-150,bw,bh);
-      block(baseX+100,baseY-150,bw,bh);
+      block(baseX-100,baseY-150,bw,bh); block(baseX,baseY-150,bw,bh); block(baseX+100,baseY-150,bw,bh);
       block(baseX,baseY-210,280,16);
-      block(baseX-70,baseY-270,bw,90);
-      block(baseX+70,baseY-270,bw,90);
+      block(baseX-70,baseY-270,bw,90); block(baseX+70,baseY-270,bw,90);
       block(baseX,baseY-330,180,16);
       block(baseX,baseY-370,16,70);
-      pig(baseX-80,baseY-120);
-      pig(baseX+80,baseY-120);
-      pig(baseX-100,baseY-240);
-      pig(baseX+100,baseY-240);
-      pig(baseX,baseY-240);
-      pig(baseX-30,baseY-390);
-      pig(baseX+30,baseY-390);
+      pig(baseX-80,baseY-120); pig(baseX+80,baseY-120); pig(baseX-100,baseY-240); pig(baseX+100,baseY-240); pig(baseX,baseY-240); pig(baseX-30,baseY-390); pig(baseX+30,baseY-390);
     }
   ];
 
-  const layout = layouts[(n-1) % layouts.length];
-  layout();
+  layouts[(n-1)%layouts.length]();
 
-  // Дополнительные усиления для поздних уровней
   if(n>=4){
     createBody(baseX-110,baseY-92,14,92,{color:darkColor,mass:1.4+diff*.1});
     createBody(baseX+110,baseY-92,14,92,{color:darkColor,mass:1.4+diff*.1});
@@ -457,77 +369,52 @@ function buildLevel(n){
   }
 }
 
-function createLevel(resetScore=false, keepCoins=true){
+function createLevel(resetScore=false){
   groundY=H-48;
   sling.x=Math.max(78,W*0.17);
   sling.y=groundY-66;
   bodies=[];
-  dragging=false;
-  launched=false;
-  pointerId=null;
-  projectile=null;
+  dragging=false; launched=false; pointerId=null; projectile=null;
   attempts=Math.max(2,6-level);
   maxAttempts=attempts;
   if(resetScore) score=0;
-  levelCoinsEarnedThisLevel = 0;
+  levelCoinsEarnedThisLevel=0;
   overlay.style.display="none";
-  if(!keepCoins){} // оставлено для совместимости
-
   buildLevel(level);
   createProjectile();
   hintEl.textContent="Оттяни птицу — увидишь траекторию полёта!";
   updateUI();
 }
 
-/* ============================================================
-   ФИЗИКА (без изменений)
-   ============================================================ */
+/* ========== RESIZE ========== */
 function resize(){
-  const oldW=W,oldH=H;
-  W=window.innerWidth;
-  H=window.innerHeight;
+  const oldW=W, oldH=H;
+  W=window.innerWidth; H=window.innerHeight;
   DPR=Math.min(window.devicePixelRatio||1,2);
-  canvas.width=Math.round(W*DPR);
-  canvas.height=Math.round(H*DPR);
+  canvas.width=Math.round(W*DPR); canvas.height=Math.round(H*DPR);
   ctx.setTransform(DPR,0,0,DPR,0,0);
   ctx.imageSmoothingEnabled=true;
-  if(oldW && oldH){
-    if(!inMenu) createLevel(false);
-  }else{
-    if(!inMenu) createLevel(true);
-  }
+  if(oldW && oldH){ if(!inMenu) createLevel(false); }
+  else { if(!inMenu) createLevel(true); }
 }
 
-function wake(b){
-  if(!b||b.isStatic)return;
-  b.sleeping=false;
-  b.sleepTime=0;
-}
-
+/* ========== КОЛЛИЗИИ ========== */
+function wake(b){ if(!b||b.isStatic)return; b.sleeping=false; b.sleepTime=0; }
 function circleCircle(a,b){
-  const dx=b.x-a.x,dy=b.y-a.y;
-  const d=Math.hypot(dx,dy),min=a.radius+b.radius;
+  const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy),min=a.radius+b.radius;
   if(d>=min||d<0.0001)return null;
   return {nx:dx/d,ny:dy/d,depth:min-d};
 }
-
 function rectRect(a,b){
   const dx=b.x-a.x,dy=b.y-a.y;
-  const ox=(a.w+b.w)/2-Math.abs(dx);
-  const oy=(a.h+b.h)/2-Math.abs(dy);
+  const ox=(a.w+b.w)/2-Math.abs(dx), oy=(a.h+b.h)/2-Math.abs(dy);
   if(ox<=0||oy<=0)return null;
-  return ox<oy
-    ?{nx:dx>=0?1:-1,ny:0,depth:ox}
-    :{nx:0,ny:dy>=0?1:-1,depth:oy};
+  return ox<oy?{nx:dx>=0?1:-1,ny:0,depth:ox}:{nx:0,ny:dy>=0?1:-1,depth:oy};
 }
-
 function circleRect(c,r){
-  const left=r.x-r.w/2,right=r.x+r.w/2;
-  const top=r.y-r.h/2,bottom=r.y+r.h/2;
-  const px=Math.max(left,Math.min(right,c.x));
-  const py=Math.max(top,Math.min(bottom,c.y));
-  let dx=c.x-px,dy=c.y-py;
-  const d=Math.hypot(dx,dy);
+  const left=r.x-r.w/2,right=r.x+r.w/2,top=r.y-r.h/2,bottom=r.y+r.h/2;
+  const px=Math.max(left,Math.min(right,c.x)), py=Math.max(top,Math.min(bottom,c.y));
+  let dx=c.x-px,dy=c.y-py; const d=Math.hypot(dx,dy);
   if(d>=c.radius)return null;
   if(d<0.0001){
     const toL=c.x-left,toR=right-c.x,toT=c.y-top,toB=bottom-c.y;
@@ -539,20 +426,43 @@ function circleRect(c,r){
   }
   return {nx:-dx/d,ny:-dy/d,depth:c.radius-d};
 }
-
 function getCollision(a,b){
   if(a.radius&&b.radius)return circleCircle(a,b);
   if(!a.radius&&!b.radius)return rectRect(a,b);
   if(a.radius)return circleRect(a,b);
-  const hit=circleRect(b,a);
-  if(hit){hit.nx*=-1;hit.ny*=-1;}
-  return hit;
+  const hit=circleRect(b,a); if(hit){hit.nx*=-1;hit.ny*=-1;} return hit;
 }
-
 function burstParticles(x,y,color,count=12,kind="dot"){
   for(let i=0;i<count;i++){
-    const a=Math.random()*Math.PI*2;
-    const speed=70+Math.random()*210;
+    const a=Math.random()*Math.PI*2, speed=70+Math.random()*210;
     particles.push({x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed-50,
       life:.45+Math.random()*.45,maxLife:.9,size:2+Math.random()*4,color,
-      kind,rotation:Math.random()*Math.PI,spin:(Math.random()
+      kind,rotation:Math.random()*Math.PI,spin:(Math.random()-.5)*9});
+  }
+}
+function breakWoodBlock(block){
+  if(!block.alive)return;
+  block.alive=false;
+  for(const body of bodies) if(body.alive&&!body.isStatic) wake(body);
+  burstParticles(block.x,block.y,"#b9793f",15,"wood");
+  burstParticles(block.x,block.y,"#e2ad72",9,"wood");
+}
+function destroyTarget(t){
+  if(!t.alive||t.scored)return;
+  burstParticles(t.x,t.y,getSkin("pig").color,16);
+  t.alive=false; t.scored=true;
+  score+=100;
+  addCoins(1);
+  levelCoinsEarnedThisLevel+=1;
+  updateUI();
+}
+function resolve(a,b,hit){
+  const nx=hit.nx,ny=hit.ny;
+  const speedA=Math.hypot(a.vx,a.vy), speedB=Math.hypot(b.vx,b.vy);
+  if(a.sleeping&&speedB>20)wake(a);
+  if(b.sleeping&&speedA>20)wake(b);
+  const ia=(a.isStatic||a.sleeping)?0:1/a.mass;
+  const ib=(b.isStatic||b.sleeping)?0:1/b.mass;
+  const sum=ia+ib; if(!sum)return;
+  const correction=Math.max(hit.depth-0.25,0)*0.78/sum;
+  if(ia){a.x-=nx*correction*ia;a.y-=ny
