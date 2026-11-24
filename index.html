@@ -87,9 +87,36 @@ var scoreEl=$("score"),levelEl=$("level"),coinsEl=$("coins"),birdQueueEl=$("bird
 var overlay=$("overlay"),overlayTitle=$("overlayTitle"),overlayText=$("overlayText"),overlayButton=$("overlayButton");
 var menuScreen=$("menuScreen"),shopScreen=$("shopScreen"),menuCoinsEl=$("menuCoins"),shopCoinsEl=$("shopCoins"),shopListEl=$("shopList"),shopTabsEl=$("shopTabs");
 var playBtn=$("playBtn"),shopBtn=$("shopBtn"),shopBack=$("shopBack"),restartBtn=$("restart");
-var SKINS={bg:[{id:"bg_default",name:"День",price:0,colors:["#62bce9","#d4f2ff"],ground:"#5cad42",groundDark:"#367c2c"},{id:"bg_sunset",name:"Закат",price:2000,colors:["#ff9a5c","#ffe6a7"],ground:"#7a9a3a",groundDark:"#4d6b23"},{id:"bg_night",name:"Ночь",price:3000,colors:["#1b2a54","#4b6bb5"],ground:"#2f4a5a",groundDark:"#1d313c"},{id:"bg_forest",name:"Лес",price:2500,colors:["#9fe0b0","#e6f9df"],ground:"#4f9a3c",groundDark:"#316b26"},{id:"bg_desert",name:"Пустыня",price:3500,colors:["#ffd27a","#fff2cf"],ground:"#d9b25e",groundDark:"#a8842f"}],pig:[{id:"pig_default",name:"Классик",price:0,color:"#56d64e",eye:"#237a29",cheek:"#f28c9a"},{id:"pig_blue",name:"Синий",price:1250,color:"#4fa8ff",eye:"#1b4f7a",cheek:"#8fc4f0"},{id:"pig_purple",name:"Фиолет",price:1750,color:"#b06bff",eye:"#5a2c7a",cheek:"#d5aef0"},{id:"pig_orange",name:"Апельсин",price:2250,color:"#ff9b3d",eye:"#9a5200",cheek:"#ffd08a"}],bird:[{id:"bird_default",name:"Красная",price:0,color:"#f04435",color2:"#b91f25",belly:"#ff9a72",beak:"#ffb300",crest:"#ffd54f"},{id:"bird_blue",name:"Синяя",price:1250,color:"#3f8cff",color2:"#1f4fb9",belly:"#8fc1ff",beak:"#ffd54f",crest:"#b3e5ff"},{id:"bird_yellow",name:"Жёлтая",price:1750,color:"#ffd23f",color2:"#c99a00",belly:"#fff0a8",beak:"#ff8a3d",crest:"#fff59d"},{id:"bird_green",name:"Зелёная",price:2250,color:"#5bd45b",color2:"#2c8a2c",belly:"#b3f0a8",beak:"#ffd54f",crest:"#c8f5a8"}],sling:[{id:"sling_default",name:"Дерево",price:0,color:"#bd8146",color2:"#80502b",color3:"#4b2a17"},{id:"sling_dark",name:"Тёмное",price:1250,color:"#8a6b4a",color2:"#4d3520",color3:"#2e1d0f"},{id:"sling_metal",name:"Металл",price:2250,color:"#c8d2dc",color2:"#7a8794",color3:"#4a545e"},{id:"sling_gold",name:"Золото",price:3500,color:"#ffe08a",color2:"#c99b1a",color3:"#8a6508"}]};
+var SKINS={
+bg:[{id:"bg_default",name:"День",price:0,colors:["#62bce9","#d4f2ff"],ground:"#5cad42",groundDark:"#367c2c"},{id:"bg_sunset",name:"Закат",price:2000,colors:["#ff9a5c","#ffe6a7"],ground:"#7a9a3a",groundDark:"#4d6b23"},{id:"bg_night",name:"Ночь",price:3000,colors:["#1b2a54","#4b6bb5"],ground:"#2f4a5a",groundDark:"#1d313c"},{id:"bg_forest",name:"Лес",price:2500,colors:["#9fe0b0","#e6f9df"],ground:"#4f9a3c",groundDark:"#316b26"},{id:"bg_desert",name:"Пустыня",price:3500,colors:["#ffd27a","#fff2cf"],ground:"#d9b25e",groundDark:"#a8842f"}],
+pig:[
+{id:"pig_default",name:"Классик",price:0,color:"#56d64e",eye:"#237a29",cheek:"#f28c9a",model:"classic"},
+{id:"pig_blue",name:"Синий",price:1250,color:"#4fa8ff",eye:"#1b4f7a",cheek:"#8fc4f0",model:"classic"},
+{id:"pig_purple",name:"Фиолет",price:1750,color:"#b06bff",eye:"#5a2c7a",cheek:"#d5aef0",model:"classic"},
+{id:"pig_orange",name:"Апельсин",price:2250,color:"#ff9b3d",eye:"#9a5200",cheek:"#ffd08a",model:"classic"},
+{id:"pig_king",name:"Король",price:5000,color:"#ffcf3f",eye:"#7a5a10",cheek:"#ffe89a",model:"king"},
+{id:"pig_ninja",name:"Ниндзя",price:4500,color:"#3a3a4a",eye:"#111",cheek:"#666",model:"ninja"},
+{id:"pig_robot",name:"Робот",price:6000,color:"#9aa7b5",eye:"#2b4b6b",cheek:"#c8d2dc",model:"robot"}
+],
+bird:[
+{id:"bird_default",name:"Красная",price:0,color:"#f04435",color2:"#b91f25",belly:"#ff9a72",beak:"#ffb300",crest:"#ffd54f",model:"classic"},
+{id:"bird_blue",name:"Синяя",price:1250,color:"#3f8cff",color2:"#1f4fb9",belly:"#8fc1ff",beak:"#ffd54f",crest:"#b3e5ff",model:"classic"},
+{id:"bird_yellow",name:"Жёлтая",price:1750,color:"#ffd23f",color2:"#c99a00",belly:"#fff0a8",beak:"#ff8a3d",crest:"#fff59d",model:"classic"},
+{id:"bird_green",name:"Зелёная",price:2250,color:"#5bd45b",color2:"#2c8a2c",belly:"#b3f0a8",beak:"#ffd54f",crest:"#c8f5a8",model:"classic"},
+{id:"bird_ninja",name:"Ниндзя",price:5000,color:"#2a2a34",color2:"#101018",belly:"#444",beak:"#ffb300",crest:"#ff4444",model:"ninja"},
+{id:"bird_robo",name:"Робо",price:6000,color:"#b8c2cc",color2:"#5a6773",belly:"#dde4ea",beak:"#ff6a3d",crest:"#4ac6ff",model:"robot"},
+{id:"bird_phoenix",name:"Феникс",price:7500,color:"#ff6a3d",color2:"#b01f1f",belly:"#ffd27a",beak:"#ffe08a",crest:"#ffd23f",model:"phoenix"}
+],
+sling:[
+{id:"sling_default",name:"Дерево",price:0,color:"#bd8146",color2:"#80502b",color3:"#4b2a17",model:"classic"},
+{id:"sling_dark",name:"Тёмное",price:1250,color:"#8a6b4a",color2:"#4d3520",color3:"#2e1d0f",model:"classic"},
+{id:"sling_metal",name:"Металл",price:2250,color:"#c8d2dc",color2:"#7a8794",color3:"#4a545e",model:"metal"},
+{id:"sling_gold",name:"Золото",price:3500,color:"#ffe08a",color2:"#c99b1a",color3:"#8a6508",model:"gold"},
+{id:"sling_bone",name:"Кость",price:4500,color:"#f0e6d2",color2:"#b8a888",color3:"#7a6a50",model:"bone"},
+{id:"sling_neon",name:"Неон",price:6000,color:"#4af0ff",color2:"#1a8aa0",color3:"#0a3a44",model:"neon"}
+]};
 var DEF={bg:"bg_default",pig:"pig_default",bird:"bird_default",sling:"sling_default"};
-var SAVE_KEY="slingshot_save_v4";
+var SAVE_KEY="slingshot_save_v5";
 var AudioCtx=window.AudioContext||window.webkitAudioContext,actx=null;
 function ensureAudio(){if(!actx&&AudioCtx){try{actx=new AudioCtx();}catch(e){}}if(actx&&actx.state==="suspended")actx.resume();}
 function tone(f,d,t,v,s){if(!actx)return;var o=actx.createOscillator(),g=actx.createGain();o.type=t||"sine";o.frequency.value=f;if(s)o.frequency.exponentialRampToValueAtTime(Math.max(30,s),actx.currentTime+d);g.gain.setValueAtTime(v||0.15,actx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+d);o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+d);}
@@ -107,7 +134,7 @@ var GRAVITY=1450,POWER=12,MAX_PULL=155,FIXED_DT=1/120,MAX_STEPS=6,SOLVER_ITERATI
 function updateUI(){scoreEl.textContent=score;levelEl.textContent=level;var h="";for(var i=0;i<attempts;i++)h+='🐦';birdQueueEl.textContent=h||"—";syncCoinsUI();}
 function createBody(x,y,w,h,opt){opt=opt||{};var b={x:x,y:y,px:x,py:y,vx:0,vy:0,w:w,h:h,radius:opt.radius||0,type:opt.type||"block",color:opt.color||"#b9793f",mass:opt.mass||1,restitution:opt.restitution!=null?opt.restitution:0.05,friction:opt.friction!=null?opt.friction:0.8,alive:true,sleeping:false,sleepTime:0,isStatic:!!opt.isStatic,scored:false};bodies.push(b);return b;}
 function createProjectile(){projectileStopTime=0;projectile=createBody(sling.x,sling.y,36,36,{type:"projectile",radius:18,color:getSkin("bird").color,mass:1.5,restitution:0.38,friction:0.65});}
-function buildLevel(n){var baseX=Math.min(W*0.73,W-110),baseY=groundY,diff=Math.min(n-1,9),bw=Math.min(36,W*0.085),bh=80+diff*2,bc=diff>=6?"#9b6338":(diff>=3?"#a06a3c":"#b9793f"),dc="#8f5b35";
+  function buildLevel(n){var baseX=Math.min(W*0.73,W-110),baseY=groundY,diff=Math.min(n-1,9),bw=Math.min(36,W*0.085),bh=80+diff*2,bc=diff>=6?"#9b6338":(diff>=3?"#a06a3c":"#b9793f"),dc="#8f5b35";
 function B(x,y,w,h,e){var o={color:bc,mass:1.1+diff*0.1};if(e)for(var k in e)o[k]=e[k];return createBody(x,y,w,h,o);}
 function P(x,y){return createBody(x,y,36,36,{type:"target",radius:18,color:getSkin("pig").color,mass:0.7+diff*0.06,restitution:0.12,friction:0.75});}
 var L=[
@@ -130,6 +157,5 @@ function rR(a,b){var dx=b.x-a.x,dy=b.y-a.y,ox=(a.w+b.w)/2-Math.abs(dx),oy=(a.h+b
 function cR(c,r){var l=r.x-r.w/2,rt=r.x+r.w/2,t=r.y-r.h/2,b=r.y+r.h/2,px=Math.max(l,Math.min(rt,c.x)),py=Math.max(t,Math.min(b,c.y)),dx=c.x-px,dy=c.y-py,d=Math.hypot(dx,dy);if(d>=c.radius)return null;if(d<0.0001){var toL=c.x-l,toR=rt-c.x,toT=c.y-t,toB=b-c.y,m=Math.min(toL,toR,toT,toB);if(m===toL)return{nx:1,ny:0,depth:c.radius+toL};if(m===toR)return{nx:-1,ny:0,depth:c.radius+toR};if(m===toT)return{nx:0,ny:1,depth:c.radius+toT};return{nx:0,ny:-1,depth:c.radius+toB};}return{nx:-dx/d,ny:-dy/d,depth:c.radius-d};}
 function getCol(a,b){if(a.radius&&b.radius)return cC(a,b);if(!a.radius&&!b.radius)return rR(a,b);if(a.radius)return cR(a,b);var h=cR(b,a);if(h){h.nx*=-1;h.ny*=-1;}return h;}
 function burst(x,y,color,count,kind){count=count||12;kind=kind||"dot";for(var i=0;i<count;i++){var a=Math.random()*Math.PI*2,s=70+Math.random()*210;particles.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-50,life:.45+Math.random()*.45,maxLife:.9,size:2+Math.random()*4,color:color,kind:kind,rotation:Math.random()*Math.PI,spin:(Math.random()-.5)*9});}}
-function breakBlock(b){if(!b.alive)return;b.alive=false;for(var i=0;i<bodies.length;i++)if(bodies[i].alive&&!bodies[i].isStatic)wake(bodies[i]);burst(b.x,b.y,"#b9793f",15,"wood");burst(b.x,b.y,"#e2ad72",9,"wood");SFX.break();}
-function killTarget(t){if(!t.alive||t.scored)return;burst(t.x,t.y,getSkin("pig").color,16);t.alive=false;t.scored=true;score+=100;addCoins(1);updateUI();SFX.pop();}
-function resolve(a,b,h){var nx=h.nx,ny=h.ny,sA=Math.hypot(a.vx,a.vy),sB=Math.hypot(b.vx,b.vy);if(a.sleeping&&sB>20)wake(a);if(b.sleeping&&sA>20)wake(b);var ia=(a.isStatic||a.sleeping)?0:1/a.mass,ib=(b.isStatic||b.sleeping)?0:1/b.mass,sum=ia+ib;if(!sum)return;var corr=Math.max(h.depth-0.25,0)*0.78/sum;if(ia){a.x-=nx*corr*ia;a.y-=ny*corr*ia;}if(ib){b.x+=nx*corr*ib;b.y+=ny*corr*ib;}var rvx=b.vx-a.vx,rvy=b.vy-a.vy,vn=rvx*nx+rvy*ny;if(vn>=0)return;var e=Math.abs(vn)<35?0:Math.min(a.restitution,b.restitution),j=-(1+e)*vn/sum,ix=j*nx,iy=j*ny;if(ia){a.vx-=ix*ia;a.vy-=iy*ia;}if(ib){b.vx+=ix*ib;b.vy+=iy*ib;}var tx0=rvx-vn*nx,ty0=rvy-vn*ny,tl=Math.hypot(tx0,ty0);if(tl>0.001){var tx=tx0/tl,ty=ty0/tl,jt=-(rvx*tx+rvy*ty)/sum,mu=Math.sqrt(a.friction*b.friction),fj=Math.max(-j*mu,Math.min(j*mu,jt));if(ia){a.vx-=fj*tx*ia;a.vy-=fj*ty*ia;}if(ib){b.vx+=fj*tx*ib;b.vy+=fj*ty*ib
+function breakBlock(b){if(!b.al
+           
