@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#62bce9">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Slingshot Mini Game</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#83cffa;touch-action:none;overscroll-behavior:none;user-select:none;-webkit-user-select:none;font-family:Arial,sans-serif}
+#game{position:relative;width:100%;height:100%;height:100dvh;overflow:hidden}
+canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}#canvas:active{cursor:grabbing}
+#ui{position:absolute;top:max(12px,env(safe-area-inset-top));left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;z-index:5;pointer-events:none}
+.stats{display:flex;gap:7px;flex-wrap:wrap}
+.panel{padding:10px 13px;background:rgba(255,255,255,.94);border-radius:12px;color:#25364a;font-weight:bold;font-size:clamp(13px,3.5vw,17px);box-shadow:0 3px 12px #0002}.bird-queue{display:inline-flex;gap:3px;vertical-align:middle;min-height:22px}.bird-token{font-size:20px;line-height:1;filter:drop-shadow(0 1px 1px #0003)}
+button{pointer-events:auto;background:#ff7043;color:white;border:0;padding:11px 15px;border-radius:12px;font-size:14px;font-weight:bold;box-shadow:0 3px 8px #0002}
+#hint{position:absolute;bottom:max(18px,env(safe-area-inset-bottom));left:12px;right:12px;text-align:center;color:white;font-weight:bold;font-size:14px;text-shadow:0 2px 5px #333;pointer-events:none}
+#overlay{display:none;position:absolute;inset:0;z-index:10;background:rgba(12,30,45,.35);align-items:center;justify-content:center;padding:20px}
+#overlayCard{background:white;border-radius:20px;padding:24px;text-align:center;max-width:320px;width:100%;box-shadow:0 12px 35px #0003}
+#overlayTitle{font-size:25px;color:#25364a;margin-bottom:10px}
+#overlayText{color:#526273;margin-bottom:18px;line-height:1.4}
+#overlay button{font-size:16px;padding:13px 22px}
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="ui">
+    <div class="stats">
+      <div class="panel">⭐ <span id="score">0</span></div>
+      <div class="panel">Уровень: <span id="level">1</span></div>
+      <div class="panel">Птицы: <span id="birdQueue" class="bird-queue"></span></div>
+    </div>
+    <button id="restart">↻ Заново</button>
+  </div>
+  <canvas id="canvas"></canvas>
+  <div id="hint">Оттяни снаряд назад и отпусти!</div>
+  <div id="overlay">
+    <div id="overlayCard">
+      <div id="overlayTitle">Уровень пройден!</div>
+      <div id="overlayText">Отличный результат!</div>
+      <button id="overlayButton">Следующий уровень</button>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+"use strict";
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d", {alpha:false});
+const scoreEl = document.getElementById("score");
+const levelEl = document.getElementById("level");
+const birdQueueEl = document.getElementById("birdQueue");
+const hintEl = document.getElementById("hint");
+const overlay = document.getElementById("overlay");
+const overlayTitle = document.getElementById("overlayTitle");
+const overlayText = document.getElementById("overlayText");
+const overlayButton = document.getElementById("overlayButton");
+
+let W=0,H=0,DPR=1,groundY=0;
+let bodies=[],projectile=null;
+let score=0,level=1,attempts=5,maxAttempts=5;
+let dragging=false,launched=false,pointerId=null,projectileStopTime=0;
+let sling={x:100,y:300};
+let lastTime=0,accumulator=0,animationTime=0;
+const particles=[];
+
+const GRAVITY=1450;
+const POWER=12;
+const MAX_PULL=155;
+const FIXED_DT=1/120;
+const MAX_STEPS=6;
+const SOLVER_ITERATIONS=7;
+
+function updateUI(){
+  scoreEl.textContent=score;
+  levelEl.textContent=level;
+  birdQueueEl.innerHTML=Array.from({length:attempts},()=>'<span class="bird-token" aria-label="Птица">🐦</span>').join("") || "—";
+}
+
+function createBody(x,y,w,h,opt={}){
+  const b={
+    x,y,px:x,py:y,vx:0,vy:0,w,h,
+    radius:opt.radius||0,
+    type:opt.type||"block",
+    color:opt.color||"#b9793f",
+    mass:opt.mass||1,
+    restitution:opt.restitution??0.05,
+    friction:opt.friction??0.8,
+    alive:true,sleeping:false,sleepTime:0,
+    isStatic:!!opt.isStatic,scored:false
+  };
+  bodies.push(b);
+  return b;
+}
+
+function createProjectile(){
+  projectileStopTime=0;
+  projectile=createBody(sling.x,sling.y,36,36,{
+    type:"projectile",radius:18,color:"#ed3939",
+    mass:1.5,restitution:0.38,friction:0.65
+  });
+}
+
+function createLevel(resetScore=false){
+  groundY=H-48;
+  sling.x=Math.max(78,W*0.17);
+  sling.y=groundY-66;
+  bodies=[];
+  dragging=false;
+  launched=false;
+  pointerId=null;
+  projectile=null;
+  attempts=Math.max(2,6-level);
+  maxAttempts=attempts;
+  if(resetScore) score=0;
+  overlay.style.display="none";
+
+  const baseX=Math.min(W*0.73,W-110);
+  const baseY=groundY;
+  const difficulty=Math.min(level-1,8);
+  const bw=Math.min(36,W*0.085);
+  const blockColor= difficulty>=4 ? "#9b6338" : "#b9793f";
+
+  // Небольшие уровневые вариации конструкции.
+  createBody(baseX-48,baseY-42,bw,84,{color:blockColor,mass:1.1+difficulty*0.12});
+  createBody(baseX+48,baseY-42,bw,84,{color:blockColor,mass:1.1+difficulty*0.12});
+  createBody(baseX,baseY-92,125,16,{color:blockColor,mass:1.2+difficulty*0.12});
+  createBody(baseX-48,baseY-150,bw,60,{color:blockColor,mass:1+difficulty*0.1});
+  createBody(baseX+48,baseY-150,bw,60,{color:blockColor,mass:1+difficulty*0.1});
+  createBody(baseX,baseY-190,125,16,{color:blockColor,mass:1.2+difficulty*0.12});
+
+  const positions=[
+    [baseX,baseY-120],
+    [baseX-48,baseY-180],
+    [baseX+48,baseY-180],
+    [baseX,baseY-215],
+    [baseX-24,baseY-250],
+    [baseX+24,baseY-250],
+    [baseX,baseY-280],
+    [baseX+48,baseY-300]
+  ];
+  if(level>=3){
+    createBody(baseX-72,baseY-92,14,92,{color:"#8f5b35",mass:1.4+difficulty*.1});
+    createBody(baseX+72,baseY-92,14,92,{color:"#8f5b35",mass:1.4+difficulty*.1});
+  }
+  if(level>=5){
+    createBody(baseX,baseY-238,100,14,{color:"#8f5b35",mass:1.7+difficulty*.12});
+  }
+  const targetCount=Math.min(3+level-1,8);
+  for(let i=0;i<targetCount;i++){
+    const p=positions[i];
+    createBody(p[0],p[1],36,36,{
+      type:"target",radius:18,color:"#56d64e",
+      mass:0.7+Math.min(level-1,8)*0.08,restitution:0.12,friction:0.75
+    });
+  }
+  createProjectile();
+  hintEl.textContent="Оттяни птицу — увидишь траекторию полёта!";
+  updateUI();
+}
+
+function resize(){
+  const oldW=W,oldH=H;
+  W=window.innerWidth;
+  H=window.innerHeight;
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  canvas.width=Math.round(W*DPR);
+  canvas.height=Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.imageSmoothingEnabled=true;
+  if(oldW && oldH){
+    // Перезапуск текущего уровня сохраняет общий счёт.
+    createLevel(false);
+  }else{
+    createLevel(true);
+  }
+}
+
+function wake(b){
+  if(!b||b.isStatic)return;
+  b.sleeping=false;
+  b.sleepTime=0;
+}
+
+function circleCircle(a,b){
+  const dx=b.x-a.x,dy=b.y-a.y;
+  const d=Math.hypot(dx,dy),min=a.radius+b.radius;
+  if(d>=min||d<0.0001)return null;
+  return {nx:dx/d,ny:dy/d,depth:min-d};
+}
+
+function rectRect(a,b){
+  const dx=b.x-a.x,dy=b.y-a.y;
+  const ox=(a.w+b.w)/2-Math.abs(dx);
+  const oy=(a.h+b.h)/2-Math.abs(dy);
+  if(ox<=0||oy<=0)return null;
+  return ox<oy
+    ?{nx:dx>=0?1:-1,ny:0,depth:ox}
+    :{nx:0,ny:dy>=0?1:-1,depth:oy};
+}
+
+function circleRect(c,r){
+  const left=r.x-r.w/2,right=r.x+r.w/2;
+  const top=r.y-r.h/2,bottom=r.y+r.h/2;
+  const px=Math.max(left,Math.min(right,c.x));
+  const py=Math.max(top,Math.min(bottom,c.y));
+  let dx=c.x-px,dy=c.y-py;
+  const d=Math.hypot(dx,dy);
+  if(d>=c.radius)return null;
+  if(d<0.0001){
+    const toL=c.x-left,toR=right-c.x,toT=c.y-top,toB=bottom-c.y;
+    const m=Math.min(toL,toR,toT,toB);
+    if(m===toL)return {nx:1,ny:0,depth:c.radius+toL};
+    if(m===toR)return {nx:-1,ny:0,depth:c.radius+toR};
+    if(m===toT)return {nx:0,ny:1,depth:c.radius+toT};
+    return {nx:0,ny:-1,depth:c.radius+toB};
+  }
+  return {nx:-dx/d,ny:-dy/d,depth:c.radius-d};
+}
+
+function getCollision(a,b){
+  if(a.radius&&b.radius)return circleCircle(a,b);
+  if(!a.radius&&!b.radius)return rectRect(a,b);
+  if(a.radius)return circleRect(a,b);
+  const hit=circleRect(b,a);
+  if(hit){hit.nx*=-1;hit.ny*=-1;}
+  return hit;
+}
+
+function burstParticles(x,y,color,count=12,kind="dot"){
+  for(let i=0;i<count;i++){
+    const a=Math.random()*Math.PI*2;
+    const speed=70+Math.random()*210;
+    particles.push({x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed-50,
+      life:.45+Math.random()*.45,maxLife:.9,size:2+Math.random()*4,color,
+      kind,rotation:Math.random()*Math.PI,spin:(Math.random()-.5)*9});
+  }
+}
+
+function breakWoodBlock(block){
+  if(!block.alive)return;
+  block.alive=false;
+
+  // Разрушение опоры меняет равновесие всей конструкции:
+  // будим уснувшие динамические тела, чтобы они снова учитывали гравитацию.
+  for(const body of bodies){
+    if(body.alive && !body.isStatic) wake(body);
+  }
+
+  // Flying wooden splinters
+  burstParticles(block.x,block.y,"#b9793f",15,"wood");
+  burstParticles(block.x,block.y,"#e2ad72",9,"wood");
+}
+
+function destroyTarget(t){
+  if(!t.alive||t.scored)return;
+  burstParticles(t.x,t.y,"#69d64d",16);
+  t.alive=false;
+  t.scored=true;
+  score+=100;
+  updateUI();
+}
+
+function resolve(a,b,hit){
+  const nx=hit.nx,ny=hit.ny;
+  const speedA=Math.hypot(a.vx,a.vy);
+  const speedB=Math.hypot(b.vx,b.vy);
+  if(a.sleeping&&speedB>20)wake(a);
+  if(b.sleeping&&speedA>20)wake(b);
+
+  const ia=(a.isStatic||a.sleeping)?0:1/a.mass;
+  const ib=(b.isStatic||b.sleeping)?0:1/b.mass;
+  const sum=ia+ib;
+  if(!sum)return;
+
+  // Позиционная коррекция с небольшим допуском против дрожания.
+  const correction=Math.max(hit.depth-0.25,0)*0.78/sum;
+  if(ia){a.x-=nx*correction*ia;a.y-=ny*correction*ia;}
+  if(ib){b.x+=nx*correction*ib;b.y+=ny*correction*ib;}
+
+  const rvx=b.vx-a.vx,rvy=b.vy-a.vy;
+  const vn=rvx*nx+rvy*ny;
+  if(vn>=0)return;
+
+  const e=Math.abs(vn)<35?0:Math.min(a.restitution,b.restitution);
+  const j=-(1+e)*vn/sum;
+  const ix=j*nx,iy=j*ny;
+  if(ia){a.vx-=ix*ia;a.vy-=iy*ia;}
+  if(ib){b.vx+=ix*ib;b.vy+=iy*ib;}
+
+  const tx0=rvx-vn*nx,ty0=rvy-vn*ny;
+  const tl=Math.hypot(tx0,ty0);
+  if(tl>0.001){
+    const tx=tx0/tl,ty=ty0/tl;
+    const jt=-(rvx*tx+rvy*ty)/sum;
+    const mu=Math.sqrt(a.friction*b.friction);
+    const fj=Math.max(-j*mu,Math.min(j*mu,jt));
+    if(ia){a.vx-=fj*tx*ia;a.vy-=fj*ty*ia;}
+    if(ib){b.vx+=fj*tx*ib;b.vy+=fj*ty*ib;}
+  }
+
+  const impact=Math.abs(vn);
+  const birdHitBlock =
+    (a.type==="projectile" && b.type==="block") ||
+    (b.type==="projectile" && a.type==="block");
+  if(birdHitBlock && launched && impact>28){
+    if(a.type==="block")breakWoodBlock(a);
+    if(b.type==="block")breakWoodBlock(b);
+  }
+  if(impact>95){
+    if(a.type==="target")destroyTarget(a);
+    if(b.type==="target")destroyTarget(b);
+  }
+  if(impact>25){wake(a);wake(b);}
+}
+
+function groundCollision(b){
+  const bottom=b.radius?b.y+b.radius:b.y+b.h/2;
+  if(bottom<=groundY)return;
+  b.y-=bottom-groundY;
+  if(b.vy>0)b.vy=-b.vy*b.restitution;
+  b.vx*=0.94;
+  if(Math.abs(b.vy)<22)b.vy=0;
+  if(Math.abs(b.vx)<3)b.vx=0;
+}
+
+function sleepSystem(b,dt){
+  if(b.isStatic||b===projectile&&dragging)return;
+  const speed=Math.hypot(b.vx,b.vy);
+  if(speed<8&&Math.abs(b.vy)<7){
+    b.sleepTime+=dt;
+    if(b.sleepTime>0.7){
+      b.sleeping=true;
+      b.vx=0;b.vy=0;
+    }
+  }else{
+    b.sleepTime=0;
+    b.sleeping=false;
+  }
+}
+
+function showOverlay(title,text,buttonText,action){
+  overlayTitle.textContent=title;
+  overlayText.textContent=text;
+  overlayButton.textContent=buttonText;
+  overlay.style.display="flex";
+  overlayButton.onclick=()=>{
+    overlay.style.display="none";
+    action();
+  };
+}
+
+function checkLevelComplete(){
+  if(overlay.style.display==="flex")return;
+  const remaining=bodies.some(b=>b.alive&&b.type==="target");
+  if(!remaining){
+    launched=false;
+    dragging=false;
+    hintEl.textContent="Уровень пройден!";
+    showOverlay("🏆 Победа!",`Уровень ${level} пройден. Набрано очков: ${score}`,"Следующий уровень",()=>{
+      level++;
+      createLevel(false);
+    });
+    return;
+  }
+  if(attempts<=0&&!launched&&!dragging){
+    hintEl.textContent="Попытки закончились!";
+    showOverlay("Попытки закончились",`Уровень ${level} не пройден. Попробуй ещё раз!`,"Повторить уровень",()=>{
+      createLevel(false);
+    });
+  }
+}
+
+function physics(dt){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.life-=dt;
+    p.vy+=GRAVITY*.45*dt;
+    p.x+=p.vx*dt;p.y+=p.vy*dt;
+    if(p.kind==="wood"){
+      p.rotation+=p.spin*dt;
+      p.vx*=.995;
+    }
+    if(p.life<=0)particles.splice(i,1);
+  }
+  for(const b of bodies){
+    if(!b.alive||b.isStatic||b.sleeping)continue;
+    if(b===projectile&&dragging)continue;
+    b.px=b.x;b.py=b.y;
+    b.vy+=GRAVITY*dt;
+    b.x+=b.vx*dt;
+    b.y+=b.vy*dt;
+    b.vx*=0.999;
+    b.vy*=0.999;
+  }
+
+  for(let k=0;k<SOLVER_ITERATIONS;k++){
+    for(let i=0;i<bodies.length;i++){
+      const a=bodies[i];
+      if(!a.alive)continue;
+      groundCollision(a);
+
+      for(let j=i+1;j<bodies.length;j++){
+        const b=bodies[j];
+        if(!b.alive)continue;
+        if(a===projectile&&dragging||b===projectile&&dragging)continue;
+        if(a.sleeping&&b.sleeping)continue;
+        const hit=getCollision(a,b);
+        if(hit)resolve(a,b,hit);
+      }
+    }
+  }
+
+  for(const b of bodies){
+    if(!b.alive)continue;
+    groundCollision(b);
+    sleepSystem(b,dt);
+    if(b.y>H+120||b.x< -150||b.x>W+150){
+      if(b.type==="target")destroyTarget(b);
+      else b.alive=false;
+    }
+  }
+  bodies=bodies.filter(b=>b.alive);
+
+  if(launched&&projectile&&projectile.alive){
+    const speed=Math.hypot(projectile.vx,projectile.vy);
+    if(speed<16){
+      projectileStopTime+=dt;
+    }else{
+      projectileStopTime=0;
+    }
+    // After the bird has settled, load the next one into the slingshot.
+    if(projectileStopTime>0.75){
+      projectile.alive=false;
+      projectile=null;
+      launched=false;
+      projectileStopTime=0;
+      if(attempts>0&&bodies.some(b=>b.type==="target")){
+        createProjectile();
+        hintEl.textContent="Следующая птица готова!";
+      }
+    }
+  }
+  checkLevelComplete();
+}
+
+// Рогатка: раздвоенная деревянная основа, резинки и кожаный кармашек.
+function drawSling(){
+  const x=sling.x,y=sling.y;
+  ctx.save();
+  // Low wooden footing: the slingshot visibly stands on the ground.
+  ctx.fillStyle="#704323";
+  ctx.strokeStyle="#4b2b18";
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(x-25,groundY-15);
+  ctx.lineTo(x+25,groundY-15);
+  ctx.quadraticCurveTo(x+29,groundY-15,x+29,groundY-11);
+  ctx.lineTo(x+29,groundY-6);
+  ctx.lineTo(x-29,groundY-6);
+  ctx.lineTo(x-29,groundY-11);
+  ctx.quadraticCurveTo(x-29,groundY-15,x-25,groundY-15);
+  ctx.closePath();
+  ctx.fill();ctx.stroke();
+  ctx.fillStyle="#a86c37";
+  ctx.fillRect(x-24,groundY-13,48,3);
+
+  ctx.lineCap="round";
+  ctx.lineJoin="round";
+
+  ctx.strokeStyle="rgba(0,0,0,.18)";
+  ctx.lineWidth=19;
+  ctx.beginPath();
+  ctx.moveTo(x+3,y+57);ctx.lineTo(x+3,y+4);ctx.stroke();
+
+  const wood=ctx.createLinearGradient(x-22,y-35,x+20,y+55);
+  wood.addColorStop(0,"#bd8146");
+  wood.addColorStop(.48,"#80502b");
+  wood.addColorStop(1,"#4b2a17");
+  ctx.strokeStyle=wood;
+  ctx.lineWidth=17;
+
+  ctx.beginPath();
+  ctx.moveTo(x,y+55);
+  ctx.bezierCurveTo(x-8,y+20,x-14,y-5,x-23,y-36);
+  ctx.moveTo(x,y+55);
+  ctx.bezierCurveTo(x+8,y+20,x+14,y-5,x+23,y-36);
+  ctx.stroke();
+
+  ctx.strokeStyle="#5b351d";
+  ctx.lineWidth=19;
+  ctx.beginPath();
+  ctx.moveTo(x,y+48);
+  ctx.quadraticCurveTo(x-4,y+25,x,y+5);
+  ctx.stroke();
+
+  ctx.strokeStyle="rgba(255,220,160,.4)";
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.moveTo(x-17,y-26);
+  ctx.quadraticCurveTo(x-9,y+4,x-5,y+25);
+  ctx.stroke();
+
+  ctx.fillStyle="#d6a15f";
+  ctx.beginPath();
+  ctx.arc(x-23,y-36,7,0,Math.PI*2);
+  ctx.arc(x+23,y-36,7,0,Math.PI*2);
+  ctx.fill();
+
+  if(projectile&&!launched){
+    ctx.strokeStyle="#3e2a1d";
+    ctx.lineWidth=4;
+    ctx.beginPath();
+    ctx.moveTo(x-23,y-36);
+    ctx.lineTo(projectile.x,projectile.y);
+    ctx.moveTo(x+23,y-36);
+    ctx.lineTo(projectile.x,projectile.y);
+    ctx.stroke();
+
+    ctx.fillStyle="#9a6035";
+    ctx.beginPath();
+    ctx.ellipse(projectile.x,projectile.y,11,6,0,0,Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawBlock(b){
+  ctx.save();
+  ctx.shadowColor="rgba(0,0,0,.18)";
+  ctx.shadowBlur=5;
+  ctx.shadowOffsetY=3;
+  const x=b.x-b.w/2,y=b.y-b.h/2;
+  const g=ctx.createLinearGradient(x,y,x+b.w,y+b.h);
+  g.addColorStop(0,"#dda36a");
+  g.addColorStop(.5,"#b9793f");
+  g.addColorStop(1,"#895126");
+  ctx.fillStyle=g;
+  ctx.fillRect(x,y,b.w,b.h);
+  ctx.shadowColor="transparent";
+  ctx.strokeStyle="#75421f";
+  ctx.lineWidth=2;
+  ctx.strokeRect(x,y,b.w,b.h);
+  ctx.strokeStyle="rgba(90,45,15,.25)";
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  if(b.w>b.h){ctx.moveTo(x+8,b.y);ctx.lineTo(x+b.w-8,b.y);}
+  else{ctx.moveTo(b.x,y+8);ctx.lineTo(b.x,y+b.h-8);}
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawTarget(b){
+  ctx.save();ctx.translate(b.x,b.y);
+  ctx.fillStyle="#45b83d";ctx.strokeStyle="#237a29";ctx.lineWidth=2.5;
+  ctx.beginPath();
+  ctx.moveTo(-13,-12);ctx.lineTo(-19,-27);ctx.quadraticCurveTo(-7,-25,-4,-13);ctx.closePath();
+  ctx.moveTo(13,-12);ctx.lineTo(19,-27);ctx.quadraticCurveTo(7,-25,4,-13);ctx.closePath();
+  ctx.fill();ctx.stroke();
+  const g=ctx.createRadialGradient(-7,-10,3,0,0,b.radius+3);
+  g.addColorStop(0,"#a4f477");g.addColorStop(1,"#329c32");
+  ctx.fillStyle=g;ctx.shadowColor="rgba(0,0,0,.22)";ctx.shadowBlur=5;ctx.shadowOffsetY=3;
+  ctx.beginPath();ctx.arc(0,0,b.radius,0,Math.PI*2);ctx.fill();
+  ctx.shadowColor="transparent";ctx.strokeStyle="#237a29";ctx.lineWidth=2.5;ctx.stroke();
+  ctx.fillStyle="#fff";ctx.beginPath();ctx.ellipse(-7,-5,4.4,6,0,0,Math.PI*2);ctx.ellipse(7,-5,4.4,6,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#182b18";ctx.beginPath();ctx.arc(-6,-4,2,0,Math.PI*2);ctx.arc(8,-4,2,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#f28c9a";ctx.strokeStyle="#b94d61";ctx.lineWidth=1.8;
+  ctx.beginPath();ctx.ellipse(0,8,10,7,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.fillStyle="#873d4a";ctx.beginPath();ctx.ellipse(-3,8,1.5,3,0,0,Math.PI*2);ctx.ellipse(3,8,1.5,3,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="rgba(255,170,170,.65)";ctx.beginPath();ctx.arc(-13,7,3,0,Math.PI*2);ctx.arc(13,7,3,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+function drawProjectile(b){
+  ctx.save();ctx.translate(b.x,b.y);
+  ctx.fillStyle="#b91f25";ctx.strokeStyle="#85171d";ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(-13,5);ctx.lineTo(-27,-1);ctx.lineTo(-21,11);ctx.lineTo(-30,14);ctx.lineTo(-12,17);ctx.closePath();ctx.fill();ctx.stroke();
+  const g=ctx.createRadialGradient(-8,-10,2,0,0,b.radius+4);
+  g.addColorStop(0,"#ff9a72");g.addColorStop(.55,"#f04435");g.addColorStop(1,"#b91f25");
+  ctx.fillStyle=g;ctx.shadowColor="rgba(0,0,0,.25)";ctx.shadowBlur=6;ctx.shadowOffsetY=3;
+  ctx.beginPath();ctx.arc(0,0,b.radius,0,Math.PI*2);ctx.fill();
+  ctx.shadowColor="transparent";ctx.strokeStyle="#941b20";ctx.lineWidth=2.2;ctx.stroke();
+  ctx.fillStyle="#c62b2e";ctx.beginPath();ctx.moveTo(-5,-16);ctx.quadraticCurveTo(-13,-29,-3,-25);ctx.quadraticCurveTo(0,-22,1,-17);ctx.closePath();ctx.fill();
+  ctx.strokeStyle="#54201d";ctx.lineWidth=3.5;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(-14,-10);ctx.lineTo(-4,-7);ctx.moveTo(4,-7);ctx.lineTo(14,-10);ctx.stroke();
+  ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(-8,-3,5,0,Math.PI*2);ctx.arc(8,-3,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#251d1b";ctx.beginPath();ctx.arc(-7,-2,2.4,0,Math.PI*2);ctx.arc(9,-2,2.4,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#ffc43d";ctx.strokeStyle="#a96a16";ctx.lineWidth=1.8;
+  ctx.beginPath();ctx.moveTo(-5,5);ctx.lineTo(7,5);ctx.lineTo(1,14);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.restore();
+}
+function drawBackground(){
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,"#62bce9");
+  g.addColorStop(1,"#d4f2ff");
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+
+  ctx.fillStyle="rgba(255,255,255,.65)";
+  for(let i=0;i<3;i++){
+    const x=(i*210+35)%(W+100),y=100+i*48;
+    ctx.beginPath();
+    ctx.arc(x,y,22,0,Math.PI*2);
+    ctx.arc(x+25,y-9,29,0,Math.PI*2);
+    ctx.arc(x+53,y,22,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  ctx.fillStyle="#5cad42";ctx.fillRect(0,groundY,W,H-groundY);
+  ctx.fillStyle="#367c2c";ctx.fillRect(0,groundY,W,6);
+}
+
+function drawTrajectory(){
+  if(!dragging||!projectile)return;
+  const dx=sling.x-projectile.x;
+  const dy=sling.y-projectile.y;
+  const pull=Math.hypot(dx,dy);
+  const ratio=Math.min(pull/MAX_PULL,1);
+  const power=1+ratio*.65;
+  const vx=dx*POWER*power,vy=dy*POWER*power;
+  ctx.save();
+  ctx.setLineDash([3,8]);
+  ctx.lineWidth=2.5;
+  ctx.strokeStyle="rgba(255,255,255,.92)";
+  ctx.fillStyle="rgba(255,255,255,.95)";
+  ctx.beginPath();
+  let started=false;
+  for(let t=.06;t<=1.45;t+=.09){
+    const x=projectile.x+vx*t;
+    const y=projectile.y+vy*t+.5*GRAVITY*t*t;
+    if(y>groundY-10||x>W+20)break;
+    if(!started){ctx.moveTo(x,y);started=true;}else ctx.lineTo(x,y);
+    ctx.moveTo(x,y);ctx.arc(x,y,2.2,0,Math.PI*2);
+    ctx.moveTo(x,y);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawParticles(){
+  for(const p of particles){
+    ctx.globalAlpha=Math.max(0,p.life/p.maxLife);
+    ctx.fillStyle=p.color;
+    if(p.kind==="wood"){
+      ctx.save();
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.rotation);
+      ctx.fillRect(-p.size*1.5,-p.size*.55,p.size*3,p.size*1.1);
+      ctx.restore();
+    }else{
+      ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();
+    }
+  }
+  ctx.globalAlpha=1;
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  drawBackground();
+  drawSling();
+  drawTrajectory();
+  for(const b of bodies){
+    if(!b.alive||b===projectile)continue;
+    if(b.type==="target")drawTarget(b);
+    else drawBlock(b);
+  }
+  if(projectile&&projectile.alive)drawProjectile(projectile);
+  drawParticles();
+}
+
+function getPointer(e){
+  const r=canvas.getBoundingClientRect();
+  return {x:e.clientX-r.left,y:e.clientY-r.top};
+}
+
+canvas.addEventListener("pointerdown",e=>{
+  if(!projectile||launched||overlay.style.display==="flex")return;
+  const p=getPointer(e);
+  if(Math.hypot(p.x-projectile.x,p.y-projectile.y)<Math.max(58,projectile.radius+30)){
+    dragging=true;
+    pointerId=e.pointerId;
+    canvas.setPointerCapture(e.pointerId);
+  }
+});
+
+canvas.addEventListener("pointermove",e=>{
+  if(!dragging||!projectile||e.pointerId!==pointerId)return;
+  const p=getPointer(e);
+  let dx=p.x-sling.x,dy=p.y-sling.y;
+  const maxDistance=Math.min(MAX_PULL,W*.35);
+  const distance=Math.hypot(dx,dy);
+  if(distance>maxDistance){dx*=maxDistance/distance;dy*=maxDistance/distance;}
+  dx=Math.min(dx,10);
+  projectile.x=sling.x+dx;
+  projectile.y=sling.y+dy;
+  projectile.vx=0;projectile.vy=0;
+  projectile.sleeping=false;
+});
+
+function releaseProjectile(){
+  if(!dragging||!projectile)return;
+  dragging=false;
+  pointerId=null;
+  const dx=sling.x-projectile.x;
+  const dy=sling.y-projectile.y;
+  const distance=Math.hypot(dx,dy);
+  const pullRatio=Math.min(distance/MAX_PULL,1);
+  const multiplier=1+pullRatio*.65;
+  projectile.vx=dx*POWER*multiplier;
+  projectile.vy=dy*POWER*multiplier;
+  launched=true;
+  projectileStopTime=0;
+  attempts=Math.max(0,attempts-1);
+  updateUI();
+  hintEl.textContent="Попади по всем целям!";
+}
+
+canvas.addEventListener("pointerup",e=>{
+  if(e.pointerId===pointerId)releaseProjectile();
+});
+canvas.addEventListener("pointercancel",e=>{
+  if(e.pointerId===pointerId){
+    dragging=false;
+    pointerId=null;
+  }
+});
+
+document.getElementById("restart").addEventListener("click",()=>{
+  level=1;
+  createLevel(true);
+});
+
+function loop(timestamp){
+  if(!lastTime)lastTime=timestamp;
+  const frameTime=Math.min((timestamp-lastTime)/1000,.05);
+  animationTime+=frameTime;
+  lastTime=timestamp;
+  accumulator+=frameTime;
+  let steps=0;
+  while(accumulator>=FIXED_DT&&steps<MAX_STEPS){
+    physics(FIXED_DT);
+    accumulator-=FIXED_DT;
+    steps++;
+  }
+  if(steps===MAX_STEPS)accumulator=Math.min(accumulator,FIXED_DT);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+window.addEventListener("resize",resize);
+
+if(window.Telegram&&window.Telegram.WebApp){
+  const tg=window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+  tg.disableVerticalSwipes?.();
+}
+
+resize();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
