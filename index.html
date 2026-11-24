@@ -64,50 +64,37 @@ button:active{transform:scale(.97)}
   </div>
   <canvas id="canvas"></canvas>
   <div id="hint">Оттяни снаряд назад и отпусти!</div>
-
-  <div id="overlay">
-    <div id="overlayCard">
-      <div id="overlayTitle">Уровень пройден!</div>
-      <div id="overlayText"></div>
-      <button id="overlayButton">Далее</button>
+  <div id="overlay"><div id="overlayCard">
+    <div id="overlayTitle">Уровень пройден!</div>
+    <div id="overlayText"></div>
+    <button id="overlayButton">Далее</button>
+  </div></div>
+  <div id="menuScreen" class="screen show"><div class="menu-card">
+    <div class="menu-logo">🐦🎯</div>
+    <div class="menu-title">SLINGSHOT</div>
+    <div class="menu-sub">Рогатка · Свинки · Скины</div>
+    <div class="menu-coins">🪙 <span id="menuCoins">0</span></div>
+    <div class="menu-buttons">
+      <button id="playBtn" class="btn-primary">▶ Играть</button>
+      <button id="shopBtn" class="btn-secondary">🛒 Магазин</button>
     </div>
-  </div>
-
-  <div id="menuScreen" class="screen show">
-    <div class="menu-card">
-      <div class="menu-logo">🐦🎯</div>
-      <div class="menu-title">SLINGSHOT</div>
-      <div class="menu-sub">Рогатка · Свинки · Скины</div>
-      <div class="menu-coins">🪙 <span id="menuCoins">0</span></div>
-      <div class="menu-buttons">
-        <button id="playBtn" class="btn-primary">▶ Играть</button>
-        <button id="shopBtn" class="btn-secondary">🛒 Магазин</button>
-      </div>
+  </div></div>
+  <div id="shopScreen" class="screen"><div class="shop-card">
+    <div class="shop-head"><h2>Магазин</h2><div class="shop-coins">🪙 <span id="shopCoins">0</span></div></div>
+    <div class="shop-tabs" id="shopTabs">
+      <button class="shop-tab active" data-tab="bg">Фон</button>
+      <button class="shop-tab" data-tab="pig">Свиньи</button>
+      <button class="shop-tab" data-tab="bird">Птицы</button>
+      <button class="shop-tab" data-tab="sling">Рогатка</button>
     </div>
-  </div>
-
-  <div id="shopScreen" class="screen">
-    <div class="shop-card">
-      <div class="shop-head">
-        <h2>Магазин</h2>
-        <div class="shop-coins">🪙 <span id="shopCoins">0</span></div>
-      </div>
-      <div class="shop-tabs" id="shopTabs">
-        <button class="shop-tab active" data-tab="bg">Фон</button>
-        <button class="shop-tab" data-tab="pig">Свиньи</button>
-        <button class="shop-tab" data-tab="bird">Птицы</button>
-        <button class="shop-tab" data-tab="sling">Рогатка</button>
-      </div>
-      <div class="shop-list" id="shopList"></div>
-      <button id="shopBack" class="btn-ghost">← Назад в меню</button>
-    </div>
-  </div>
+    <div class="shop-list" id="shopList"></div>
+    <button id="shopBack" class="btn-ghost">← Назад в меню</button>
+  </div></div>
 </div>
 <script>
 (function(){
 "use strict";
 
-/* ---------- DOM ---------- */
 var canvas=document.getElementById("canvas");
 var ctx=canvas.getContext("2d",{alpha:false});
 var scoreEl=document.getElementById("score");
@@ -130,7 +117,7 @@ var shopBtn=document.getElementById("shopBtn");
 var shopBack=document.getElementById("shopBack");
 var restartBtn=document.getElementById("restart");
 
-/* ---------- Скины ---------- */
+/* Скины */
 var SKINS={
   bg:[
     {id:"bg_default",name:"День",price:0,colors:["#62bce9","#d4f2ff"],ground:"#5cad42",groundDark:"#367c2c"},
@@ -159,8 +146,6 @@ var SKINS={
   ]
 };
 var SAVE_DEFAULT={bg:"bg_default",pig:"pig_default",bird:"bird_default",sling:"sling_default"};
-
-/* ---------- Сохранение ---------- */
 var SAVE_KEY="slingshot_save_v2";
 var save={coins:0,
   unlocked:{bg:["bg_default"],pig:["pig_default"],bird:["bird_default"],sling:["sling_default"]},
@@ -189,14 +174,10 @@ function getSkin(cat){
   for(var i=0;i<SKINS[cat].length;i++)if(SKINS[cat][i].id===id)return SKINS[cat][i];
   return SKINS[cat][0];
 }
-function syncCoinsUI(){
-  coinsEl.textContent=save.coins;
-  menuCoinsEl.textContent=save.coins;
-  shopCoinsEl.textContent=save.coins;
-}
+function syncCoinsUI(){coinsEl.textContent=save.coins;menuCoinsEl.textContent=save.coins;shopCoinsEl.textContent=save.coins;}
 function addCoins(n){save.coins+=n;persistSave();syncCoinsUI();}
 
-/* ---------- Состояние ---------- */
+/* Состояние */
 var W=0,H=0,DPR=1,groundY=0;
 var bodies=[],projectile=null;
 var score=0,level=1,attempts=5,maxAttempts=5;
@@ -216,7 +197,7 @@ function updateUI(){
   syncCoinsUI();
 }
 
-/* ---------- Физика ---------- */
+/* Физика */
 function createBody(x,y,w,h,opt){
   opt=opt||{};
   var b={x:x,y:y,px:x,py:y,vx:0,vy:0,w:w,h:h,radius:opt.radius||0,
@@ -231,113 +212,29 @@ function createProjectile(){
   projectile=createBody(sling.x,sling.y,36,36,{type:"projectile",radius:18,color:getSkin("bird").color,mass:1.5,restitution:0.38,friction:0.65});
 }
 
-/* ---------- Уровни ---------- */
+/* Уровни */
 function buildLevel(n){
-  var baseX=Math.min(W*0.73,W-110);
-  var baseY=groundY;
-  var diff=Math.min(n-1,9);
-  var bw=Math.min(36,W*0.085);
-  var bh=80+diff*2;
+  var baseX=Math.min(W*0.73,W-110),baseY=groundY,diff=Math.min(n-1,9);
+  var bw=Math.min(36,W*0.085),bh=80+diff*2;
   var blockColor=diff>=6?"#9b6338":(diff>=3?"#a06a3c":"#b9793f");
   var darkColor="#8f5b35";
   function block(x,y,w,h,ex){var o={color:blockColor,mass:1.1+diff*0.1};if(ex)for(var k in ex)o[k]=ex[k];return createBody(x,y,w,h,o);}
   function pig(x,y){return createBody(x,y,36,36,{type:"target",radius:18,color:getSkin("pig").color,mass:0.7+diff*0.06,restitution:0.12,friction:0.75});}
-
   var layouts=[
-    function(){
-      block(baseX-48,baseY-42,bw,bh);block(baseX+48,baseY-42,bw,bh);
-      block(baseX,baseY-92,125,16);
-      block(baseX-48,baseY-150,bw,60);block(baseX+48,baseY-150,bw,60);
-      block(baseX,baseY-190,125,16);
-      pig(baseX,baseY-120);pig(baseX-48,baseY-180);pig(baseX+48,baseY-180);
-    },
-    function(){
-      block(baseX-70,baseY-42,bw,bh);block(baseX+70,baseY-42,bw,bh);
-      block(baseX,baseY-92,180,16);
-      block(baseX-40,baseY-140,bw,70);block(baseX+40,baseY-140,bw,70);
-      block(baseX,baseY-185,120,16);
-      pig(baseX,baseY-120);pig(baseX-60,baseY-170);pig(baseX+60,baseY-170);pig(baseX,baseY-215);
-    },
-    function(){
-      block(baseX-55,baseY-42,bw,bh);block(baseX,baseY-42,bw,bh);block(baseX+55,baseY-42,bw,bh);
-      block(baseX,baseY-92,200,16);
-      block(baseX-45,baseY-145,bw,80);block(baseX+45,baseY-145,bw,80);
-      block(baseX,baseY-195,140,16);
-      pig(baseX-55,baseY-120);pig(baseX+55,baseY-120);pig(baseX,baseY-230);pig(baseX,baseY-270);
-    },
-    function(){
-      block(baseX-90,baseY-42,bw,bh);block(baseX-30,baseY-42,bw,bh);
-      block(baseX+30,baseY-42,bw,bh);block(baseX+90,baseY-42,bw,bh);
-      block(baseX,baseY-92,240,16);
-      block(baseX-70,baseY-145,bw,80);block(baseX+70,baseY-145,bw,80);
-      block(baseX,baseY-195,180,16);
-      block(baseX-40,baseY-240,bw,60);block(baseX+40,baseY-240,bw,60);
-      block(baseX,baseY-280,140,16);
-      pig(baseX-60,baseY-120);pig(baseX+60,baseY-120);pig(baseX,baseY-230);pig(baseX,baseY-310);
-    },
-    function(){
-      block(baseX-100,baseY-42,bw,bh);block(baseX+100,baseY-42,bw,bh);
-      block(baseX,baseY-92,260,16);
-      block(baseX-60,baseY-145,bw,80);block(baseX+60,baseY-145,bw,80);
-      block(baseX,baseY-195,160,16);
-      block(baseX,baseY-240,16,80);
-      pig(baseX-80,baseY-120);pig(baseX+80,baseY-120);pig(baseX,baseY-230);pig(baseX-40,baseY-270);pig(baseX+40,baseY-270);
-    },
-    function(){
-      block(baseX-110,baseY-42,bw,bh);block(baseX-60,baseY-42,bw,bh);
-      block(baseX+60,baseY-42,bw,bh);block(baseX+110,baseY-42,bw,bh);
-      block(baseX-85,baseY-92,120,16);block(baseX+85,baseY-92,120,16);
-      block(baseX-85,baseY-145,bw,80);block(baseX+85,baseY-145,bw,80);
-      block(baseX-85,baseY-195,90,16);block(baseX+85,baseY-195,90,16);
-      pig(baseX-85,baseY-120);pig(baseX+85,baseY-120);pig(baseX-85,baseY-225);pig(baseX+85,baseY-225);pig(baseX,baseY-120);
-    },
-    function(){
-      block(baseX-55,baseY-42,bw,bh);block(baseX+55,baseY-42,bw,bh);
-      block(baseX,baseY-92,150,16);
-      block(baseX-55,baseY-150,bw,bh);block(baseX+55,baseY-150,bw,bh);
-      block(baseX,baseY-200,150,16);
-      block(baseX-55,baseY-258,bw,bh);block(baseX+55,baseY-258,bw,bh);
-      block(baseX,baseY-308,150,16);
-      pig(baseX,baseY-120);pig(baseX,baseY-228);pig(baseX,baseY-336);pig(baseX-30,baseY-336);pig(baseX+30,baseY-336);
-    },
-    function(){
-      block(baseX,baseY-42,16,160);
-      block(baseX-70,baseY-42,bw,bh);block(baseX+70,baseY-42,bw,bh);
-      block(baseX,baseY-130,200,16);
-      block(baseX-60,baseY-190,bw,90);block(baseX+60,baseY-190,bw,90);
-      block(baseX,baseY-245,170,16);
-      pig(baseX-50,baseY-170);pig(baseX+50,baseY-170);pig(baseX,baseY-280);pig(baseX-30,baseY-310);pig(baseX+30,baseY-310);
-    },
-    function(){
-      block(baseX-100,baseY-42,bw,bh);block(baseX+100,baseY-42,bw,bh);
-      block(baseX,baseY-100,260,16);
-      block(baseX-70,baseY-160,bw,90);block(baseX+70,baseY-160,bw,90);
-      block(baseX,baseY-220,180,16);
-      block(baseX-40,baseY-275,bw,70);block(baseX+40,baseY-275,bw,70);
-      block(baseX,baseY-320,120,16);
-      pig(baseX,baseY-140);pig(baseX,baseY-250);pig(baseX,baseY-350);pig(baseX-60,baseY-350);pig(baseX+60,baseY-350);
-    },
-    function(){
-      block(baseX-120,baseY-42,bw,bh);block(baseX-40,baseY-42,bw,bh);
-      block(baseX+40,baseY-42,bw,bh);block(baseX+120,baseY-42,bw,bh);
-      block(baseX,baseY-92,300,16);
-      block(baseX-100,baseY-150,bw,bh);block(baseX,baseY-150,bw,bh);block(baseX+100,baseY-150,bw,bh);
-      block(baseX,baseY-210,280,16);
-      block(baseX-70,baseY-270,bw,90);block(baseX+70,baseY-270,bw,90);
-      block(baseX,baseY-330,180,16);
-      block(baseX,baseY-370,16,70);
-      pig(baseX-80,baseY-120);pig(baseX+80,baseY-120);pig(baseX-100,baseY-240);pig(baseX+100,baseY-240);pig(baseX,baseY-240);pig(baseX-30,baseY-390);pig(baseX+30,baseY-390);
-    }
+    function(){block(baseX-48,baseY-42,bw,bh);block(baseX+48,baseY-42,bw,bh);block(baseX,baseY-92,125,16);block(baseX-48,baseY-150,bw,60);block(baseX+48,baseY-150,bw,60);block(baseX,baseY-190,125,16);pig(baseX,baseY-120);pig(baseX-48,baseY-180);pig(baseX+48,baseY-180);},
+    function(){block(baseX-70,baseY-42,bw,bh);block(baseX+70,baseY-42,bw,bh);block(baseX,baseY-92,180,16);block(baseX-40,baseY-140,bw,70);block(baseX+40,baseY-140,bw,70);block(baseX,baseY-185,120,16);pig(baseX,baseY-120);pig(baseX-60,baseY-170);pig(baseX+60,baseY-170);pig(baseX,baseY-215);},
+    function(){block(baseX-55,baseY-42,bw,bh);block(baseX,baseY-42,bw,bh);block(baseX+55,baseY-42,bw,bh);block(baseX,baseY-92,200,16);block(baseX-45,baseY-145,bw,80);block(baseX+45,baseY-145,bw,80);block(baseX,baseY-195,140,16);pig(baseX-55,baseY-120);pig(baseX+55,baseY-120);pig(baseX,baseY-230);pig(baseX,baseY-270);},
+    function(){block(baseX-90,baseY-42,bw,bh);block(baseX-30,baseY-42,bw,bh);block(baseX+30,baseY-42,bw,bh);block(baseX+90,baseY-42,bw,bh);block(baseX,baseY-92,240,16);block(baseX-70,baseY-145,bw,80);block(baseX+70,baseY-145,bw,80);block(baseX,baseY-195,180,16);block(baseX-40,baseY-240,bw,60);block(baseX+40,baseY-240,bw,60);block(baseX,baseY-280,140,16);pig(baseX-60,baseY-120);pig(baseX+60,baseY-120);pig(baseX,baseY-230);pig(baseX,baseY-310);},
+    function(){block(baseX-100,baseY-42,bw,bh);block(baseX+100,baseY-42,bw,bh);block(baseX,baseY-92,260,16);block(baseX-60,baseY-145,bw,80);block(baseX+60,baseY-145,bw,80);block(baseX,baseY-195,160,16);block(baseX,baseY-240,16,80);pig(baseX-80,baseY-120);pig(baseX+80,baseY-120);pig(baseX,baseY-230);pig(baseX-40,baseY-270);pig(baseX+40,baseY-270);},
+    function(){block(baseX-110,baseY-42,bw,bh);block(baseX-60,baseY-42,bw,bh);block(baseX+60,baseY-42,bw,bh);block(baseX+110,baseY-42,bw,bh);block(baseX-85,baseY-92,120,16);block(baseX+85,baseY-92,120,16);block(baseX-85,baseY-145,bw,80);block(baseX+85,baseY-145,bw,80);block(baseX-85,baseY-195,90,16);block(baseX+85,baseY-195,90,16);pig(baseX-85,baseY-120);pig(baseX+85,baseY-120);pig(baseX-85,baseY-225);pig(baseX+85,baseY-225);pig(baseX,baseY-120);},
+    function(){block(baseX-55,baseY-42,bw,bh);block(baseX+55,baseY-42,bw,bh);block(baseX,baseY-92,150,16);block(baseX-55,baseY-150,bw,bh);block(baseX+55,baseY-150,bw,bh);block(baseX,baseY-200,150,16);block(baseX-55,baseY-258,bw,bh);block(baseX+55,baseY-258,bw,bh);block(baseX,baseY-308,150,16);pig(baseX,baseY-120);pig(baseX,baseY-228);pig(baseX,baseY-336);pig(baseX-30,baseY-336);pig(baseX+30,baseY-336);},
+    function(){block(baseX,baseY-42,16,160);block(baseX-70,baseY-42,bw,bh);block(baseX+70,baseY-42,bw,bh);block(baseX,baseY-130,200,16);block(baseX-60,baseY-190,bw,90);block(baseX+60,baseY-190,bw,90);block(baseX,baseY-245,170,16);pig(baseX-50,baseY-170);pig(baseX+50,baseY-170);pig(baseX,baseY-280);pig(baseX-30,baseY-310);pig(baseX+30,baseY-310);},
+    function(){block(baseX-100,baseY-42,bw,bh);block(baseX+100,baseY-42,bw,bh);block(baseX,baseY-100,260,16);block(baseX-70,baseY-160,bw,90);block(baseX+70,baseY-160,bw,90);block(baseX,baseY-220,180,16);block(baseX-40,baseY-275,bw,70);block(baseX+40,baseY-275,bw,70);block(baseX,baseY-320,120,16);pig(baseX,baseY-140);pig(baseX,baseY-250);pig(baseX,baseY-350);pig(baseX-60,baseY-350);pig(baseX+60,baseY-350);},
+    function(){block(baseX-120,baseY-42,bw,bh);block(baseX-40,baseY-42,bw,bh);block(baseX+40,baseY-42,bw,bh);block(baseX+120,baseY-42,bw,bh);block(baseX,baseY-92,300,16);block(baseX-100,baseY-150,bw,bh);block(baseX,baseY-150,bw,bh);block(baseX+100,baseY-150,bw,bh);block(baseX,baseY-210,280,16);block(baseX-70,baseY-270,bw,90);block(baseX+70,baseY-270,bw,90);block(baseX,baseY-330,180,16);block(baseX,baseY-370,16,70);pig(baseX-80,baseY-120);pig(baseX+80,baseY-120);pig(baseX-100,baseY-240);pig(baseX+100,baseY-240);pig(baseX,baseY-240);pig(baseX-30,baseY-390);pig(baseX+30,baseY-390);}
   ];
   layouts[(n-1)%layouts.length]();
-
-  if(n>=4){
-    createBody(baseX-110,baseY-92,14,92,{color:darkColor,mass:1.4+diff*.1});
-    createBody(baseX+110,baseY-92,14,92,{color:darkColor,mass:1.4+diff*.1});
-  }
-  if(n>=7){
-    createBody(baseX,baseY-238,100,14,{color:darkColor,mass:1.7+diff*.12});
-  }
+  if(n>=4){createBody(baseX-110,baseY-92,14,92,{color:darkColor,mass:1.4+diff*.1});createBody(baseX+110,baseY-92,14,92,{color:darkColor,mass:1.4+diff*.1});}
+  if(n>=7){createBody(baseX,baseY-238,100,14,{color:darkColor,mass:1.7+diff*.12});}
 }
 
 function createLevel(resetScore){
@@ -356,7 +253,6 @@ function createLevel(resetScore){
   updateUI();
 }
 
-/* ---------- Resize ---------- */
 function resize(){
   var oldW=W,oldH=H;
   W=window.innerWidth;H=window.innerHeight;
@@ -367,88 +263,40 @@ function resize(){
   else{if(!inMenu)createLevel(true);}
 }
 
-/* ---------- Коллизии ---------- */
+/* Коллизии */
 function wake(b){if(!b||b.isStatic)return;b.sleeping=false;b.sleepTime=0;}
-function circleCircle(a,b){
-  var dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy),min=a.radius+b.radius;
-  if(d>=min||d<0.0001)return null;
-  return {nx:dx/d,ny:dy/d,depth:min-d};
-}
-function rectRect(a,b){
-  var dx=b.x-a.x,dy=b.y-a.y;
-  var ox=(a.w+b.w)/2-Math.abs(dx),oy=(a.h+b.h)/2-Math.abs(dy);
-  if(ox<=0||oy<=0)return null;
-  return ox<oy?{nx:dx>=0?1:-1,ny:0,depth:ox}:{nx:0,ny:dy>=0?1:-1,depth:oy};
-}
-function circleRect(c,r){
-  var left=r.x-r.w/2,right=r.x+r.w/2,top=r.y-r.h/2,bottom=r.y+r.h/2;
-  var px=Math.max(left,Math.min(right,c.x)),py=Math.max(top,Math.min(bottom,c.y));
-  var dx=c.x-px,dy=c.y-py,d=Math.hypot(dx,dy);
-  if(d>=c.radius)return null;
-  if(d<0.0001){
-    var toL=c.x-left,toR=right-c.x,toT=c.y-top,toB=bottom-c.y;
-    var m=Math.min(toL,toR,toT,toB);
-    if(m===toL)return {nx:1,ny:0,depth:c.radius+toL};
-    if(m===toR)return {nx:-1,ny:0,depth:c.radius+toR};
-    if(m===toT)return {nx:0,ny:1,depth:c.radius+toT};
-    return {nx:0,ny:-1,depth:c.radius+toB};
-  }
-  return {nx:-dx/d,ny:-dy/d,depth:c.radius-d};
-}
-function getCollision(a,b){
-  if(a.radius&&b.radius)return circleCircle(a,b);
-  if(!a.radius&&!b.radius)return rectRect(a,b);
-  if(a.radius)return circleRect(a,b);
-  var hit=circleRect(b,a);if(hit){hit.nx*=-1;hit.ny*=-1;}return hit;
-}
-function burstParticles(x,y,color,count,kind){
-  count=count||12;kind=kind||"dot";
-  for(var i=0;i<count;i++){
-    var a=Math.random()*Math.PI*2,speed=70+Math.random()*210;
-    particles.push({x:x,y:y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed-50,
-      life:.45+Math.random()*.45,maxLife:.9,size:2+Math.random()*4,color:color,
-      kind:kind,rotation:Math.random()*Math.PI,spin:(Math.random()-.5)*9});
-  }
-}
-function breakWoodBlock(block){
-  if(!block.alive)return;
-  block.alive=false;
-  for(var i=0;i<bodies.length;i++)if(bodies[i].alive&&!bodies[i].isStatic)wake(bodies[i]);
-  burstParticles(block.x,block.y,"#b9793f",15,"wood");
-  burstParticles(block.x,block.y,"#e2ad72",9,"wood");
-}
-function destroyTarget(t){
-  if(!t.alive||t.scored)return;
-  burstParticles(t.x,t.y,getSkin("pig").color,16);
-  t.alive=false;t.scored=true;
-  score+=100;
-  addCoins(1);
-  updateUI();
-}
+function circleCircle(a,b){var dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy),min=a.radius+b.radius;if(d>=min||d<0.0001)return null;return{nx:dx/d,ny:dy/d,depth:min-d};}
+function rectRect(a,b){var dx=b.x-a.x,dy=b.y-a.y;var ox=(a.w+b.w)/2-Math.abs(dx),oy=(a.h+b.h)/2-Math.abs(dy);if(ox<=0||oy<=0)return null;return ox<oy?{nx:dx>=0?1:-1,ny:0,depth:ox}:{nx:0,ny:dy>=0?1:-1,depth:oy};}
+function circleRect(c,r){var left=r.x-r.w/2,right=r.x+r.w/2,top=r.y-r.h/2,bottom=r.y+r.h/2;var px=Math.max(left,Math.min(right,c.x)),py=Math.max(top,Math.min(bottom,c.y));var dx=c.x-px,dy=c.y-py,d=Math.hypot(dx,dy);if(d>=c.radius)return null;if(d<0.0001){var toL=c.x-left,toR=right-c.x,toT=c.y-top,toB=bottom-c.y;var m=Math.min(toL,toR,toT,toB);if(m===toL)return{nx:1,ny:0,depth:c.radius+toL};if(m===toR)return{nx:-1,ny:0,depth:c.radius+toR};if(m===toT)return{nx:0,ny:1,depth:c.radius+toT};return{nx:0,ny:-1,depth:c.radius+toB};}return{nx:-dx/d,ny:-dy/d,depth:c.radius-d};}
+function getCollision(a,b){if(a.radius&&b.radius)return circleCircle(a,b);if(!a.radius&&!b.radius)return rectRect(a,b);if(a.radius)return circleRect(a,b);var hit=circleRect(b,a);if(hit){hit.nx*=-1;hit.ny*=-1;}return hit;}
+function burstParticles(x,y,color,count,kind){count=count||12;kind=kind||"dot";for(var i=0;i<count;i++){var a=Math.random()*Math.PI*2,speed=70+Math.random()*210;particles.push({x:x,y:y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed-50,life:.45+Math.random()*.45,maxLife:.9,size:2+Math.random()*4,color:color,kind:kind,rotation:Math.random()*Math.PI,spin:(Math.random()-.5)*9});}}
+function breakWoodBlock(block){if(!block.alive)return;block.alive=false;for(var i=0;i<bodies.length;i++)if(bodies[i].alive&&!bodies[i].isStatic)wake(bodies[i]);burstParticles(block.x,block.y,"#b9793f",15,"wood");burstParticles(block.x,block.y,"#e2ad72",9,"wood");}
+function destroyTarget(t){if(!t.alive||t.scored)return;burstParticles(t.x,t.y,getSkin("pig").color,16);t.alive=false;t.scored=true;score+=100;addCoins(1);updateUI();}
 function resolve(a,b,hit){
   var nx=hit.nx,ny=hit.ny;
   var speedA=Math.hypot(a.vx,a.vy),speedB=Math.hypot(b.vx,b.vy);
-  if(a.sleeping&&speedB>20)wake(a);
-  if(b.sleeping&&speedA>20)wake(b);
-  var ia=(a.isStatic||a.sleeping)?0:1/a.mass;
-  var ib=(b.isStatic||b.sleeping)?0:1/b.mass;
+  if(a.sleeping&&speedB>20)wake(a);if(b.sleeping&&speedA>20)wake(b);
+  var ia=(a.isStatic||a.sleeping)?0:1/a.mass,ib=(b.isStatic||b.sleeping)?0:1/b.mass;
   var sum=ia+ib;if(!sum)return;
   var correction=Math.max(hit.depth-0.25,0)*0.78/sum;
   if(ia){a.x-=nx*correction*ia;a.y-=ny*correction*ia;}
   if(ib){b.x+=nx*correction*ib;b.y+=ny*correction*ib;}
-  var rvx=b.vx-a.vx,rvy=b.vy-a.vy;
-  var vn=rvx*nx+rvy*ny;
+  var rvx=b.vx-a.vx,rvy=b.vy-a.vy,vn=rvx*nx+rvy*ny;
   if(vn>=0)return;
   var e=Math.abs(vn)<35?0:Math.min(a.restitution,b.restitution);
-  var j=-(1+e)*vn/sum;
-  var ix=j*nx,iy=j*ny;
+  var j=-(1+e)*vn/sum,ix=j*nx,iy=j*ny;
   if(ia){a.vx-=ix*ia;a.vy-=iy*ia;}
   if(ib){b.vx+=ix*ib;b.vy+=iy*ib;}
-  var tx0=rvx-vn*nx,ty0=rvy-vn*ny;
-  var tl=Math.hypot(tx0,ty0);
-  if(tl>0.001){
-    var tx=tx0/tl,ty=ty0/tl;
-    var jt=-(rvx*tx+rvy*ty)/sum;
-    var mu=Math.sqrt(a.friction*b.friction);
-    var fj=Math.max(-j*mu,Math.min(j*mu,jt));
-   
+  var tx0=rvx-vn*nx,ty0=rvy-vn*ny,tl=Math.hypot(tx0,ty0);
+  if(tl>0.001){var tx=tx0/tl,ty=ty0/tl;var jt=-(rvx*tx+rvy*ty)/sum;var mu=Math.sqrt(a.friction*b.friction);var fj=Math.max(-j*mu,Math.min(j*mu,jt));if(ia){a.vx-=fj*tx*ia;a.vy-=fj*ty*ia;}if(ib){b.vx+=fj*tx*ib;b.vy+=fj*ty*ib;}}
+  var impact=Math.abs(vn);
+  var birdHitBlock=(a.type==="projectile"&&b.type==="block")||(b.type==="projectile"&&a.type==="block");
+  if(birdHitBlock&&launched&&impact>28){if(a.type==="block")breakWoodBlock(a);if(b.type==="block")breakWoodBlock(b);}
+  if(impact>95){if(a.type==="target")destroyTarget(a);if(b.type==="target")destroyTarget(b);}
+  if(impact>25){wake(a);wake(b);}
+}
+function groundCollision(b){
+  var bottom=b.radius?b.y+b.radius:b.y+b.h/2;
+  if(bottom<=groundY)return;
+  b.y-=bottom-groundY;
+ 
