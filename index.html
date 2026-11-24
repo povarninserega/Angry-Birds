@@ -3,77 +3,80 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#62bce9">
-<title>Slingshot Mini Game</title>
+<title>Slingshot</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{width:100%;height:100%;overflow:hidden;background:#83cffa;touch-action:none;overscroll-behavior:none;user-select:none;-webkit-user-select:none;font-family:Arial,sans-serif}
-#game{position:relative;width:100%;height:100%;height:100dvh;overflow:hidden}
-canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
-#ui{position:absolute;top:max(12px,env(safe-area-inset-top));left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;z-index:5;pointer-events:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#83cffa;touch-action:none;user-select:none;font-family:Arial,sans-serif}
+#game{position:relative;width:100%;height:100dvh;overflow:hidden}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+#ui{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;z-index:5;pointer-events:none}
 .stats{display:flex;gap:7px;flex-wrap:wrap}
-.panel{padding:10px 13px;background:rgba(255,255,255,.94);border-radius:12px;color:#25364a;font-weight:bold;font-size:clamp(13px,3.5vw,17px);box-shadow:0 3px 12px #0002}
-.bird-queue{display:inline-flex;gap:3px;vertical-align:middle;min-height:22px}
-.bird-token{font-size:20px;line-height:1}
-button{pointer-events:auto;background:#ff7043;color:white;border:0;padding:11px 15px;border-radius:12px;font-size:14px;font-weight:bold;box-shadow:0 3px 8px #0002;cursor:pointer;font-family:inherit}
-button:active{transform:scale(.97)}
-#hint{position:absolute;bottom:max(18px,env(safe-area-inset-bottom));left:12px;right:12px;text-align:center;color:white;font-weight:bold;font-size:14px;text-shadow:0 2px 5px #333;pointer-events:none;z-index:4}
+.panel{padding:10px 13px;background:rgba(255,255,255,.94);border-radius:12px;color:#25364a;font-weight:bold;font-size:14px}
+button{pointer-events:auto;background:#ff7043;color:#fff;border:0;padding:11px 15px;border-radius:12px;font-size:14px;font-weight:bold;cursor:pointer;font-family:inherit}
+#hint{position:absolute;bottom:18px;left:12px;right:12px;text-align:center;color:#fff;font-weight:bold;font-size:14px;text-shadow:0 2px 5px #333;pointer-events:none}
 #overlay{display:none;position:absolute;inset:0;z-index:10;background:rgba(12,30,45,.35);align-items:center;justify-content:center;padding:20px}
-#overlayCard{background:white;border-radius:20px;padding:24px;text-align:center;max-width:340px;width:100%}
+#overlayCard{background:#fff;border-radius:20px;padding:24px;text-align:center;max-width:340px;width:100%}
 #overlayTitle{font-size:25px;color:#25364a;margin-bottom:10px}
-#overlayText{color:#526273;margin-bottom:18px;line-height:1.4}
-#overlay button{font-size:16px;padding:13px 22px}
+#overlayText{color:#526273;margin-bottom:18px}
 .screen{position:absolute;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:18px;background:linear-gradient(160deg,#8fd4ff,#d9f4ff 65%,#b7ecb0)}
 .screen.show{display:flex}
-.menu-card,.shop-card{background:rgba(255,255,255,.96);border-radius:24px;padding:26px 22px;max-width:420px;width:100%;text-align:center;max-height:calc(100dvh - 36px);display:flex;flex-direction:column}
-.menu-logo{font-size:clamp(34px,10vw,54px);line-height:1;margin-bottom:6px}
-.menu-title{font-size:clamp(22px,6vw,30px);color:#25364a;font-weight:900;margin-bottom:4px}
-.menu-sub{color:#6c7d90;font-weight:bold;margin-bottom:18px;font-size:14px}
-.menu-coins{display:inline-flex;gap:7px;background:#fff7d6;border:2px solid #ffd54f;color:#a8720b;font-weight:900;border-radius:14px;padding:8px 16px;margin-bottom:20px;font-size:17px;align-self:center}
+.card{background:rgba(255,255,255,.96);border-radius:24px;padding:26px 22px;max-width:420px;width:100%;text-align:center;max-height:calc(100dvh - 36px);display:flex;flex-direction:column}
+.menu-logo{font-size:48px;margin-bottom:6px}
+.menu-title{font-size:28px;color:#25364a;font-weight:900;margin-bottom:4px}
+.menu-sub{color:#6c7d90;font-weight:bold;margin-bottom:16px;font-size:14px}
+.menu-coins,.shop-coins{display:inline-flex;gap:6px;background:#fff7d6;border:2px solid #ffd54f;color:#a8720b;font-weight:900;border-radius:14px;padding:8px 16px;font-size:17px}
+.menu-coins{margin-bottom:18px;align-self:center}
 .menu-buttons{display:flex;flex-direction:column;gap:11px}
 .btn-primary{background:linear-gradient(180deg,#ff8a5c,#ff5f34);font-size:19px;padding:16px}
 .btn-secondary{background:linear-gradient(180deg,#57bdf1,#2f9ad6);font-size:17px;padding:14px}
-.btn-ghost{background:#e8eef4;color:#3d4d5e;box-shadow:none;font-size:15px;padding:12px}
-.shop-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
+.btn-ghost{background:#e8eef4;color:#3d4d5e;font-size:15px;padding:12px}
+.shop-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px}
 .shop-head h2{font-size:21px;color:#25364a}
-.shop-coins{background:#fff7d6;border:2px solid #ffd54f;color:#a8720b;font-weight:900;border-radius:12px;padding:6px 12px;font-size:15px}
 .shop-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;justify-content:center}
-.shop-tab{background:#e8eef4;color:#3d4d5e;box-shadow:none;padding:8px 10px;font-size:12.5px;border-radius:10px;flex:1;min-width:70px}
+.shop-tab{background:#e8eef4;color:#3d4d5e;padding:8px 10px;font-size:12.5px;border-radius:10px;flex:1;min-width:70px}
 .shop-tab.active{background:#25364a;color:#fff}
 .shop-list{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;overflow-y:auto;padding:2px;margin-bottom:14px;flex:1;min-height:120px}
 .shop-item{background:#f4f8fc;border:2px solid #dce7f0;border-radius:14px;padding:9px 8px;display:flex;flex-direction:column;align-items:center;gap:6px}
 .shop-item.selected{border-color:#3ec44c;background:#eefbf0}
 .shop-swatch{width:100%;height:44px;border-radius:10px;border:1px solid #0002;display:flex;align-items:center;justify-content:center;font-size:24px}
-.shop-name{font-size:12.5px;font-weight:bold;color:#25364a;line-height:1.15}
+.shop-name{font-size:12.5px;font-weight:bold;color:#25364a}
 .shop-buy{font-size:12px;padding:7px 10px;border-radius:9px;width:100%}
-.shop-buy.owned{background:#cfe9d2;color:#2c7a34;box-shadow:none}
+.shop-buy.owned{background:#cfe9d2;color:#2c7a34}
 .shop-buy.equipped{background:#3ec44c}
 .shop-buy.locked{background:#ffb300}
 </style>
 </head>
 <body>
 <div id="game">
-  <div id="ui"><div class="stats">
-    <div class="panel">🪙 <span id="coins">0</span></div>
-    <div class="panel">⭐ <span id="score">0</span></div>
-    <div class="panel">Уровень: <span id="level">1</span></div>
-    <div class="panel">Птицы: <span id="birdQueue" class="bird-queue"></span></div>
-  </div><button id="restart">↻ Заново</button></div>
-  <canvas id="canvas"></canvas>
-  <div id="hint">Оттяни снаряд назад и отпусти!</div>
-  <div id="overlay"><div id="overlayCard"><div id="overlayTitle">Уровень пройден!</div><div id="overlayText"></div><button id="overlayButton">Далее</button></div></div>
-  <div id="menuScreen" class="screen show"><div class="menu-card">
-    <div class="menu-logo">🐦🎯</div><div class="menu-title">SLINGSHOT</div>
-    <div class="menu-sub">Рогатка · Свинки · Скины</div>
-    <div class="menu-coins">🪙 <span id="menuCoins">0</span></div>
-    <div class="menu-buttons"><button id="playBtn" class="btn-primary">▶ Играть</button><button id="shopBtn" class="btn-secondary">🛒 Магазин</button></div>
-  </div></div>
-  <div id="shopScreen" class="screen"><div class="shop-card">
-    <div class="shop-head"><h2>Магазин</h2><div class="shop-coins">🪙 <span id="shopCoins">0</span></div></div>
-    <div class="shop-tabs" id="shopTabs"><button class="shop-tab active" data-tab="bg">Фон</button><button class="shop-tab" data-tab="pig">Свиньи</button><button class="shop-tab" data-tab="bird">Птицы</button><button class="shop-tab" data-tab="sling">Рогатка</button></div>
-    <div class="shop-list" id="shopList"></div>
-    <button id="shopBack" class="btn-ghost">← Назад в меню</button>
-  </div></div>
+<div id="ui"><div class="stats">
+<div class="panel">🪙 <span id="coins">0</span></div>
+<div class="panel">⭐ <span id="score">0</span></div>
+<div class="panel">Ур: <span id="level">1</span></div>
+<div class="panel">🐦 <span id="birdQueue"></span></div>
+</div><button id="restart">↻</button></div>
+<canvas id="canvas"></canvas>
+<div id="hint">Оттяни и отпусти!</div>
+<div id="overlay"><div id="overlayCard"><div id="overlayTitle"></div><div id="overlayText"></div><button id="overlayButton">Далее</button></div></div>
+<div id="menuScreen" class="screen show"><div class="card">
+<div class="menu-logo">🐦🎯</div>
+<div class="menu-title">SLINGSHOT</div>
+<div class="menu-sub">Рогатка · Свинки · Скины</div>
+<div class="menu-coins">🪙 <span id="menuCoins">0</span></div>
+<div class="menu-buttons">
+<button id="playBtn" class="btn-primary">▶ Играть</button>
+<button id="shopBtn" class="btn-secondary">🛒 Магазин</button>
+</div></div></div>
+<div id="shopScreen" class="screen"><div class="card">
+<div class="shop-head"><h2>Магазин</h2><div class="shop-coins">🪙 <span id="shopCoins">0</span></div></div>
+<div class="shop-tabs" id="shopTabs">
+<button class="shop-tab active" data-tab="bg">Фон</button>
+<button class="shop-tab" data-tab="pig">Свиньи</button>
+<button class="shop-tab" data-tab="bird">Птицы</button>
+<button class="shop-tab" data-tab="sling">Рогатка</button>
+</div>
+<div class="shop-list" id="shopList"></div>
+<button id="shopBack" class="btn-ghost">← Назад</button>
+</div></div>
 </div>
 <script>
 (function(){
@@ -84,12 +87,11 @@ var scoreEl=$("score"),levelEl=$("level"),coinsEl=$("coins"),birdQueueEl=$("bird
 var overlay=$("overlay"),overlayTitle=$("overlayTitle"),overlayText=$("overlayText"),overlayButton=$("overlayButton");
 var menuScreen=$("menuScreen"),shopScreen=$("shopScreen"),menuCoinsEl=$("menuCoins"),shopCoinsEl=$("shopCoins"),shopListEl=$("shopList"),shopTabsEl=$("shopTabs");
 var playBtn=$("playBtn"),shopBtn=$("shopBtn"),shopBack=$("shopBack"),restartBtn=$("restart");
-
 var SKINS={
- bg:[{id:"bg_default",name:"День",price:0,colors:["#62bce9","#d4f2ff"],ground:"#5cad42",groundDark:"#367c2c"},{id:"bg_sunset",name:"Закат",price:40,colors:["#ff9a5c","#ffe6a7"],ground:"#7a9a3a",groundDark:"#4d6b23"},{id:"bg_night",name:"Ночь",price:60,colors:["#1b2a54","#4b6bb5"],ground:"#2f4a5a",groundDark:"#1d313c"},{id:"bg_forest",name:"Лес",price:50,colors:["#9fe0b0","#e6f9df"],ground:"#4f9a3c",groundDark:"#316b26"},{id:"bg_desert",name:"Пустыня",price:70,colors:["#ffd27a","#fff2cf"],ground:"#d9b25e",groundDark:"#a8842f"}],
- pig:[{id:"pig_default",name:"Классик",price:0,color:"#56d64e",eye:"#237a29",cheek:"#f28c9a"},{id:"pig_blue",name:"Синий",price:25,color:"#4fa8ff",eye:"#1b4f7a",cheek:"#8fc4f0"},{id:"pig_purple",name:"Фиолет",price:35,color:"#b06bff",eye:"#5a2c7a",cheek:"#d5aef0"},{id:"pig_orange",name:"Апельсин",price:45,color:"#ff9b3d",eye:"#9a5200",cheek:"#ffd08a"}],
- bird:[{id:"bird_default",name:"Красная",price:0,color:"#f04435",color2:"#b91f25",belly:"#ff9a72"},{id:"bird_blue",name:"Синяя",price:25,color:"#3f8cff",color2:"#1f4fb9",belly:"#8fc1ff"},{id:"bird_yellow",name:"Жёлтая",price:35,color:"#ffd23f",color2:"#c99a00",belly:"#fff0a8"},{id:"bird_green",name:"Зелёная",price:45,color:"#5bd45b",color2:"#2c8a2c",belly:"#b3f0a8"}],
- sling:[{id:"sling_default",name:"Дерево",price:0,color:"#bd8146",color2:"#80502b",color3:"#4b2a17"},{id:"sling_dark",name:"Тёмное",price:25,color:"#8a6b4a",color2:"#4d3520",color3:"#2e1d0f"},{id:"sling_metal",name:"Металл",price:45,color:"#c8d2dc",color2:"#7a8794",color3:"#4a545e"},{id:"sling_gold",name:"Золото",price:70,color:"#ffe08a",color2:"#c99b1a",color3:"#8a6508"}]
+bg:[{id:"bg_default",name:"День",price:0,colors:["#62bce9","#d4f2ff"],ground:"#5cad42",groundDark:"#367c2c"},{id:"bg_sunset",name:"Закат",price:40,colors:["#ff9a5c","#ffe6a7"],ground:"#7a9a3a",groundDark:"#4d6b23"},{id:"bg_night",name:"Ночь",price:60,colors:["#1b2a54","#4b6bb5"],ground:"#2f4a5a",groundDark:"#1d313c"},{id:"bg_forest",name:"Лес",price:50,colors:["#9fe0b0","#e6f9df"],ground:"#4f9a3c",groundDark:"#316b26"},{id:"bg_desert",name:"Пустыня",price:70,colors:["#ffd27a","#fff2cf"],ground:"#d9b25e",groundDark:"#a8842f"}],
+pig:[{id:"pig_default",name:"Классик",price:0,color:"#56d64e",eye:"#237a29",cheek:"#f28c9a"},{id:"pig_blue",name:"Синий",price:25,color:"#4fa8ff",eye:"#1b4f7a",cheek:"#8fc4f0"},{id:"pig_purple",name:"Фиолет",price:35,color:"#b06bff",eye:"#5a2c7a",cheek:"#d5aef0"},{id:"pig_orange",name:"Апельсин",price:45,color:"#ff9b3d",eye:"#9a5200",cheek:"#ffd08a"}],
+bird:[{id:"bird_default",name:"Красная",price:0,color:"#f04435",color2:"#b91f25",belly:"#ff9a72"},{id:"bird_blue",name:"Синяя",price:25,color:"#3f8cff",color2:"#1f4fb9",belly:"#8fc1ff"},{id:"bird_yellow",name:"Жёлтая",price:35,color:"#ffd23f",color2:"#c99a00",belly:"#fff0a8"},{id:"bird_green",name:"Зелёная",price:45,color:"#5bd45b",color2:"#2c8a2c",belly:"#b3f0a8"}],
+sling:[{id:"sling_default",name:"Дерево",price:0,color:"#bd8146",color2:"#80502b",color3:"#4b2a17"},{id:"sling_dark",name:"Тёмное",price:25,color:"#8a6b4a",color2:"#4d3520",color3:"#2e1d0f"},{id:"sling_metal",name:"Металл",price:45,color:"#c8d2dc",color2:"#7a8794",color3:"#4a545e"},{id:"sling_gold",name:"Золото",price:70,color:"#ffe08a",color2:"#c99b1a",color3:"#8a6508"}]
 };
 var DEF={bg:"bg_default",pig:"pig_default",bird:"bird_default",sling:"sling_default"};
 var SAVE_KEY="slingshot_save_v2";
@@ -99,15 +101,12 @@ function persistSave(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));}
 function getSkin(cat){var id=save.active[cat];for(var i=0;i<SKINS[cat].length;i++)if(SKINS[cat][i].id===id)return SKINS[cat][i];return SKINS[cat][0];}
 function syncCoinsUI(){coinsEl.textContent=save.coins;menuCoinsEl.textContent=save.coins;shopCoinsEl.textContent=save.coins;}
 function addCoins(n){save.coins+=n;persistSave();syncCoinsUI();}
-
 var W=0,H=0,DPR=1,groundY=0,bodies=[],projectile=null,score=0,level=1,attempts=5,maxAttempts=5;
 var dragging=false,launched=false,pointerId=null,projectileStopTime=0,sling={x:100,y:300},lastTime=0,accumulator=0,animationTime=0,inMenu=true,particles=[];
 var GRAVITY=1450,POWER=12,MAX_PULL=155,FIXED_DT=1/120,MAX_STEPS=6,SOLVER_ITERATIONS=7;
-
-function updateUI(){scoreEl.textContent=score;levelEl.textContent=level;var h="";for(var i=0;i<attempts;i++)h+='<span class="bird-token">🐦</span>';birdQueueEl.innerHTML=h||"—";syncCoinsUI();}
+function updateUI(){scoreEl.textContent=score;levelEl.textContent=level;var h="";for(var i=0;i<attempts;i++)h+='🐦';birdQueueEl.textContent=h||"—";syncCoinsUI();}
 function createBody(x,y,w,h,opt){opt=opt||{};var b={x:x,y:y,px:x,py:y,vx:0,vy:0,w:w,h:h,radius:opt.radius||0,type:opt.type||"block",color:opt.color||"#b9793f",mass:opt.mass||1,restitution:opt.restitution!=null?opt.restitution:0.05,friction:opt.friction!=null?opt.friction:0.8,alive:true,sleeping:false,sleepTime:0,isStatic:!!opt.isStatic,scored:false};bodies.push(b);return b;}
 function createProjectile(){projectileStopTime=0;projectile=createBody(sling.x,sling.y,36,36,{type:"projectile",radius:18,color:getSkin("bird").color,mass:1.5,restitution:0.38,friction:0.65});}
-
 function buildLevel(n){var baseX=Math.min(W*0.73,W-110),baseY=groundY,diff=Math.min(n-1,9),bw=Math.min(36,W*0.085),bh=80+diff*2,bc=diff>=6?"#9b6338":(diff>=3?"#a06a3c":"#b9793f"),dc="#8f5b35";
 function B(x,y,w,h,e){var o={color:bc,mass:1.1+diff*0.1};if(e)for(var k in e)o[k]=e[k];return createBody(x,y,w,h,o);}
 function P(x,y){return createBody(x,y,36,36,{type:"target",radius:18,color:getSkin("pig").color,mass:0.7+diff*0.06,restitution:0.12,friction:0.75});}
@@ -126,8 +125,7 @@ function(){B(baseX-120,baseY-42,bw,bh);B(baseX-40,baseY-42,bw,bh);B(baseX+40,bas
 L[(n-1)%L.length]();
 if(n>=4){createBody(baseX-110,baseY-92,14,92,{color:dc,mass:1.4+diff*.1});createBody(baseX+110,baseY-92,14,92,{color:dc,mass:1.4+diff*.1});}
 if(n>=7){createBody(baseX,baseY-238,100,14,{color:dc,mass:1.7+diff*.12});}}
-
-function createLevel(reset){groundY=H-48;sling.x=Math.max(78,W*0.17);sling.y=groundY-66;bodies=[];dragging=false;launched=false;pointerId=null;projectile=null;attempts=Math.max(2,6-level);maxAttempts=attempts;if(reset)score=0;overlay.style.display="none";buildLevel(level);createProjectile();hintEl.textContent="Оттяни птицу — увидишь траекторию полёта!";updateUI();}
+function createLevel(reset){groundY=H-48;sling.x=Math.max(78,W*0.17);sling.y=groundY-66;bodies=[];dragging=false;launched=false;pointerId=null;projectile=null;attempts=Math.max(2,6-level);maxAttempts=attempts;if(reset)score=0;overlay.style.display="none";buildLevel(level);createProjectile();hintEl.textContent="Оттяни птицу и отпусти!";updateUI();}
 function resize(){var oW=W,oH=H;W=window.innerWidth;H=window.innerHeight;DPR=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);if(oW&&oH){if(!inMenu)createLevel(false);}else{if(!inMenu)createLevel(true);}}
 function wake(b){if(!b||b.isStatic)return;b.sleeping=false;b.sleepTime=0;}
 function cC(a,b){var dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy),m=a.radius+b.radius;if(d>=m||d<0.0001)return null;return{nx:dx/d,ny:dy/d,depth:m-d};}
@@ -140,7 +138,3 @@ function killTarget(t){if(!t.alive||t.scored)return;burst(t.x,t.y,getSkin("pig")
 function resolve(a,b,h){var nx=h.nx,ny=h.ny,sA=Math.hypot(a.vx,a.vy),sB=Math.hypot(b.vx,b.vy);if(a.sleeping&&sB>20)wake(a);if(b.sleeping&&sA>20)wake(b);var ia=(a.isStatic||a.sleeping)?0:1/a.mass,ib=(b.isStatic||b.sleeping)?0:1/b.mass,sum=ia+ib;if(!sum)return;var corr=Math.max(h.depth-0.25,0)*0.78/sum;if(ia){a.x-=nx*corr*ia;a.y-=ny*corr*ia;}if(ib){b.x+=nx*corr*ib;b.y+=ny*corr*ib;}var rvx=b.vx-a.vx,rvy=b.vy-a.vy,vn=rvx*nx+rvy*ny;if(vn>=0)return;var e=Math.abs(vn)<35?0:Math.min(a.restitution,b.restitution),j=-(1+e)*vn/sum,ix=j*nx,iy=j*ny;if(ia){a.vx-=ix*ia;a.vy-=iy*ia;}if(ib){b.vx+=ix*ib;b.vy+=iy*ib;}var tx0=rvx-vn*nx,ty0=rvy-vn*ny,tl=Math.hypot(tx0,ty0);if(tl>0.001){var tx=tx0/tl,ty=ty0/tl,jt=-(rvx*tx+rvy*ty)/sum,mu=Math.sqrt(a.friction*b.friction),fj=Math.max(-j*mu,Math.min(j*mu,jt));if(ia){a.vx-=fj*tx*ia;a.vy-=fj*ty*ia;}if(ib){b.vx+=fj*tx*ib;b.vy+=fj*ty*ib;}}var imp=Math.abs(vn);var hb=(a.type==="projectile"&&b.type==="block")||(b.type==="projectile"&&a.type==="block");if(hb&&launched&&imp>28){if(a.type==="block")breakBlock(a);if(b.type==="block")breakBlock(b);}if(imp>95){if(a.type==="target")killTarget(a);if(b.type==="target")killTarget(b);}if(imp>25){wake(a);wake(b);}}
 function ground(b){var bt=b.radius?b.y+b.radius:b.y+b.h/2;if(bt<=groundY)return;b.y-=bt-groundY;if(b.vy>0)b.vy=-b.vy*b.restitution;b.vx*=0.94;if(Math.abs(b.vy)<22)b.vy=0;if(Math.abs(b.vx)<3)b.vx=0;}
 function sleepSys(b,dt){if(b.isStatic||(b===projectile&&dragging))return;var s=Math.hypot(b.vx,b.vy);if(s<8&&Math.abs(b.vy)<7){b.sleepTime+=dt;if(b.sleepTime>0.7){b.sleeping=true;b.vx=0;b.vy=0;}}else{b.sleepTime=0;b.sleeping=false;}}
-
-function physics(dt){
- for(var i=particles.length-1;i>=0;i--){var p=particles[i];p.life-=dt;p.vy+=GRAVITY*.45*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.kind==="wood"){p.rotation+=p.spin*dt;p.vx*=.995;}if(p.life<=0)particles.splice(i,1);}
- for(var j=0;j<bodies.length;j
